@@ -5,8 +5,9 @@ Example main.py:
 ```
 import pachcabot
 
-AUTH_TOKEN = YOUR_TOKEN_GOES_HERE
-TEST_CHAT = GROUP_ENTITY_ID
+AUTH_TOKEN = YOUR_API_TOKEN_GOES_HERE
+TEST_CHAT = GROUP_ENTITY_ID_GOES_HERE   # for the sake of example
+BOT_ID = BOT_USER_ID_GOES_HERE          # for the sake of example
 
 def say_happy_birthday(msg):
   bot.message_reply_in_thread(msg.id, "Happy Birthday!!!🎂🎂🎂")
@@ -26,7 +27,7 @@ def handle_new_message():
 
     while True:
         msg = bot.queue_get()
-        if not msg:
+        if not msg or msg.user_id == BOT_ID:
             continue
         if msg.user_id == target_user_id and target_user_id != 0 and msg.chat_id == target_chat_id:
             say_happy_birthday(msg)
