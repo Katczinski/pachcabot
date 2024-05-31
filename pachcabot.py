@@ -109,10 +109,12 @@ class PachcaBot:
         }
         return pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
 
-    def update_msg_box(self, room):
+    def __update_msg_box(self, room):
         page = 1
+        cache_count = 0
+        stop = False
         new_msgs = []
-        while True:
+        while not stop:
             messages = pachcarequests.send_get_request(self.API_URL + f'/messages?chat_id={room.id}&per=50&page={page}', self.headers)
 
             if not messages["data"]:
@@ -122,11 +124,19 @@ class PachcaBot:
                 msg = message.Message(json)
                 if msg not in room.messages:
                     new_msgs.append(msg)
-                else:
+                    cache_count += 1
+                else:   # message already in cache
+                    stop = True
                     break
+                if self.cache_size > 0 and cache_count >= self.cache_size:
+                    stop = True
+                    break
+                    
             page += 1
         for new_msg in reversed(new_msgs):
             room.messages.append(new_msg)
+        if self.cache_size > 0:
+            del room.messages[:len(room.messages) - self.cache_size]
         return new_msgs
 
     def __room_routine(self, room):
@@ -140,7 +150,7 @@ class PachcaBot:
             updated_msg_time = updated_room.last_message_at
 
             if last_msg_time != updated_msg_time:
-                new_msgs = self.update_msg_box(room)
+                new_msgs = self.__update_msg_box(room)
                 for msg in reversed(new_msgs):
                     self.new_msg_queue.put(msg)
                 room.last_message_at = updated_room.last_message_at
@@ -164,7 +174,7 @@ class PachcaBot:
             new_room = chatroom.ChatRoom(room)
             new_room.print_info()
             self.my_rooms.append(new_room)
-            self.update_msg_box(new_room)
+            self.__update_msg_box(new_room)
             print(f'room {new_room.name} inited. Message count: {len(new_room.messages)}')
 
     def __task_init_sys(self):
