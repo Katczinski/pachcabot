@@ -32,15 +32,17 @@ class TaskHandle:
 class PachcaBot:
     AUTH_TOKEN = None
     API_URL = "https://api.pachca.com/api/shared/v1"
-    tasks = []
-    sys_tasks = []
     my_rooms = []
     new_msg_queue = None
     headers = {}
+    cache_size = 0
+    user_tasks = []
+    _sys_tasks = []
 
-    def __init__(self, auth_token):
+    def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
         self.new_msg_queue = queue.Queue()
+        self.cache_size = cache_size
         self.headers = {
             'Authorization': f'Bearer {self.AUTH_TOKEN}',
             'Content-Type': 'application/json'
@@ -71,14 +73,14 @@ class PachcaBot:
         data = {
             "code": emoji
         }
-        pachcarequests.send_delete_request(self.API_URL + url, self.headers, data)
+        return pachcarequests.send_delete_request(self.API_URL + url, self.headers, data)
 
     def message_react(self, msg_id, emoji):
         url = f'/messages/{msg_id}/reactions'
         data = {
             'code': emoji,
         }
-        pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
+        return pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
 
     def message_create_thread(self, msg_id):
         url = f'/messages/{msg_id}/thread'
@@ -94,7 +96,7 @@ class PachcaBot:
             "content": content
             }
         }
-        pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
+        return pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
 
     def message_send_in_room(self, room_id, content):
         url = '/messages'
@@ -105,7 +107,7 @@ class PachcaBot:
             "content": content
             }
         }
-        pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
+        return pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
 
     def update_msg_box(self, room):
         page = 1
@@ -127,7 +129,7 @@ class PachcaBot:
             room.messages.append(new_msg)
         return new_msgs
 
-    def room_routine(self, room):
+    def __room_routine(self, room):
         with room.mutex:
             try:
                 updated_room = self.get_room_info(room.id)
@@ -146,14 +148,14 @@ class PachcaBot:
     def queue_get(self):
         return self.new_msg_queue.get()
 
-    def scan_rooms(self):
+    def __scan_rooms(self):
         while True:
             for room in self.my_rooms:
-                    self.room_routine(room)
+                    self.__room_routine(room)
             time.sleep(1)
             
                 
-    def init_chatrooms(self):
+    def __chatrooms_init(self):
         rooms = pachcarequests.send_get_request(self.API_URL + '/chats', self.headers)
         for room in rooms["data"]:
             if room["id"] in BLACKLISTED_ROOMS:
@@ -165,31 +167,37 @@ class PachcaBot:
             self.update_msg_box(new_room)
             print(f'room {new_room.name} inited. Message count: {len(new_room.messages)}')
 
-    def init_sys_tasks(self):
-        self.task_create(self.scan_rooms, "sys_scan_rooms", True)
+    def __task_init_sys(self):
+        self.__task_create_sys(self.__scan_rooms, "__sys_scan_rooms")
 
-    def task_create(self, task_function, task_name, is_sys = False):
+    def __task_create_sys(self, task_function, task_name):
         t = TaskHandle()
         t.name = task_name
         t.thread = threading.Thread(target=task_function, daemon=True)
-        if is_sys:
-            self.sys_tasks.append(t)
-        else:
-            self.tasks.append(t)
-        return t
+        self._sys_tasks.append(t)
 
-    def start_tasks(self, tasks):
-        for task in tasks:
+    def task_create(self, task_function, task_name):
+        t = TaskHandle()
+        t.name = task_name
+        t.thread = threading.Thread(target=task_function, daemon=True)
+        self.user_tasks.append(t)
+        return t
+    
+    def __start_tasks_sys(self):
+        for task in self._sys_tasks:
+            print(f'starting task {task.name}')
+            task.thread.start()
+
+    def __start_tasks(self):
+        for task in self.user_tasks:
             print(f'starting task {task.name}')
             task.thread.start()
 
     def run(self):
-        self.init_chatrooms()
-        self.init_sys_tasks()
-        self.start_tasks(self.sys_tasks)
-        
-        # sys.exit(1)
-        self.start_tasks(self.tasks)
+        self.__chatrooms_init()
+        self.__task_init_sys()
+        self.__start_tasks_sys()
+        self.__start_tasks()
         try:
             while True:
                 # Could do some work here
