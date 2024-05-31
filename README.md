@@ -1,5 +1,6 @@
 # pachcabot
 Bot class for pachca messenger API
+Developed with Python 3.7.9
 
 Example main.py:
 ```
