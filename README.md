@@ -4,7 +4,6 @@ Bot class for pachca messenger API
 Example main.py:
 ```
 import pachcabot
-import time
 
 AUTH_TOKEN = YOUR_TOKEN_GOES_HERE
 TEST_CHAT = GROUP_ENTITY_ID
