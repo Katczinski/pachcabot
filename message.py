@@ -51,7 +51,21 @@ class Message:
                 self.user_id == other.user_id and
                 self.created_at == other.created_at and
                 self.files == other.files and
-                self.thread == other.thread and
+                # self.thread == other.thread and       # could mess up message history when thread added
                 self.parent_message_id == other.parent_message_id)
+
+    def print_info(self):
+        print("=========")
+        print("id", self.id)
+        print("entity_type", self.entity_type)
+        print("entity_id", self.entity_id)
+        print("chat_id", self.chat_id)
+        print("content", self.content)
+        print("user_id", self.user_id)
+        print("created_at", self.created_at)
+        print("files", self.files)
+        print("thread", self.thread)
+        print("parent_message_id", self.parent_message_id)
+        print("=========")
 
 
