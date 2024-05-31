@@ -96,6 +96,17 @@ class PachcaBot:
         }
         pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
 
+    def message_send_in_room(self, room_id, content):
+        url = '/messages'
+        data = {
+            "message": {
+            "entity_type": "discussion",
+            "entity_id": room_id,
+            "content": content
+            }
+        }
+        pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
+
     def update_msg_box(self, room):
         page = 1
         new_msgs = []
@@ -118,8 +129,11 @@ class PachcaBot:
 
     def room_routine(self, room):
         with room.mutex:
-            updated_room = self.get_room_info(room.id)
-
+            try:
+                updated_room = self.get_room_info(room.id)
+            except Exception as e:
+                print(e)
+                return
             last_msg_time = room.last_message_at
             updated_msg_time = updated_room.last_message_at
 
@@ -136,7 +150,7 @@ class PachcaBot:
         while True:
             for room in self.my_rooms:
                     self.room_routine(room)
-            # time.sleep(1)
+            time.sleep(1)
             
                 
     def init_chatrooms(self):
