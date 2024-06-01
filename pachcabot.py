@@ -3,13 +3,15 @@ import json
 import threading 
 import time
 import sys
+import os
 import queue
-from requests_toolbelt import MultipartEncoder
+import filetype as Filetype
 
 import pachcarequests
-import chatroom
-import message
-import user
+from chatroom import ChatRoom
+from message import Message
+from user import User
+from file import File
 
 #for debug purposes
 BLACKLISTED_ROOMS = []
@@ -38,10 +40,12 @@ class PachcaBot:
     cache_size = 0
     user_tasks = []
     _sys_tasks = []
+    uploads = {}
 
     def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
         self.new_msg_queue = queue.Queue()
+        self.uploads = dict()
         self.cache_size = cache_size
         self.headers = {
             'Authorization': f'Bearer {self.AUTH_TOKEN}',
@@ -50,7 +54,7 @@ class PachcaBot:
 
     def get_room_info(self, room_id):
         json = pachcarequests.send_get_request(self.API_URL + f'/chats/{room_id}', self.headers)
-        room = chatroom.ChatRoom(json["data"])
+        room = ChatRoom(json["data"])
         return room
 
     def get_room_users(self, room_id):
@@ -59,7 +63,7 @@ class PachcaBot:
             if room.id == room_id:
                 for user_id in room.member_ids:
                     user_json = pachcarequests.send_get_request(self.API_URL + f'/users/{user_id}', self.headers)
-                    users.append(user.User(user_json["data"]))
+                    users.append(User(user_json["data"]))
         return users
 
     def get_chat_history(self, room_id):
@@ -70,44 +74,75 @@ class PachcaBot:
 
     def message_delete_reaction(self, msg_id, emoji):
         url = f'/messages/{msg_id}/reactions'
-        data = {
+        json = {
             "code": emoji
         }
-        return pachcarequests.send_delete_request(self.API_URL + url, self.headers, data)
+        return pachcarequests.send_delete_request(self.API_URL + url, self.headers, json=json)
 
     def message_react(self, msg_id, emoji):
         url = f'/messages/{msg_id}/reactions'
-        data = {
+        json = {
             'code': emoji,
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
+        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
 
     def message_create_thread(self, msg_id):
         url = f'/messages/{msg_id}/thread'
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, {})["data"]
+        return pachcarequests.send_post_request(self.API_URL + url, self.headers)["data"]
 
     def message_reply_in_thread(self, msg_id, content):
         thread = self.message_create_thread(msg_id)
         url = '/messages'
-        data = {
+        json = {
             "message": {
             "entity_type": "thread",
             "entity_id": thread["id"],
             "content": content
             }
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
+        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
 
-    def message_send_in_room(self, room_id, content):
+    def message_send_in_room(self, room_id, content="", files:list[File]=[]):
         url = '/messages'
-        data = {
+        json = {
             "message": {
             "entity_type": "discussion",
             "entity_id": room_id,
-            "content": content
+            "content": content,
+            "files": []
             }
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, data)
+        for file in files:
+            json["message"]["files"].append({
+                "key": file.key,
+                "name": file.name,
+                "file_type": file.file_type,
+                "size": file.size
+            })
+        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+
+    def queue_get(self):
+        return self.new_msg_queue.get()
+
+    def upload_file(self, filename):
+        url = "/uploads"
+        uploads = pachcarequests.send_post_request(self.API_URL + url, self.headers)
+        direct_url = uploads.pop("direct_url")
+        try:
+            files = { filename: open(filename, 'rb') }
+        except Exception as e:
+            print(e)
+            return File()
+        pachcarequests.send_post_request(direct_url, data=uploads, files=files)
+        
+        filepath = uploads["key"].replace("${filename}", os.path.basename(filename))
+        new_file = File({
+            "key": filepath,
+            "name": os.path.basename(filename),
+            "file_type": "image" if Filetype.is_image(filename) else "file",
+            "size": os.path.getsize(filename)
+        })
+        return new_file
 
     def __update_msg_box(self, room):
         page = 1
@@ -121,7 +156,7 @@ class PachcaBot:
                 break
             
             for json in messages["data"]:
-                msg = message.Message(json)
+                msg = Message(json)
                 if msg not in room.messages:
                     new_msgs.append(msg)
                     cache_count += 1
@@ -154,24 +189,20 @@ class PachcaBot:
                 for msg in reversed(new_msgs):
                     self.new_msg_queue.put(msg)
                 room.last_message_at = updated_room.last_message_at
-        
-    def queue_get(self):
-        return self.new_msg_queue.get()
 
     def __scan_rooms(self):
         while True:
             for room in self.my_rooms:
                     self.__room_routine(room)
             time.sleep(1)
-            
-                
+             
     def __chatrooms_init(self):
         rooms = pachcarequests.send_get_request(self.API_URL + '/chats', self.headers)
         for room in rooms["data"]:
             if room["id"] in BLACKLISTED_ROOMS:
                 print(f'room {room["name"]} blacklisted')
                 continue
-            new_room = chatroom.ChatRoom(room)
+            new_room = ChatRoom(room)
             new_room.print_info()
             self.my_rooms.append(new_room)
             self.__update_msg_box(new_room)
