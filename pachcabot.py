@@ -54,18 +54,27 @@ class PachcaBot:
         }
 
     def get_room_info(self, room_id):
-        json = pachcarequests.send_get_request(self.API_URL + f'/chats/{room_id}', self.headers)
-        room = ChatRoom(json["data"])
-        return room
+        url = f'/chats/{room_id}'
+        room_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        return ChatRoom(room_json["data"])
+
+    def get_rooms(self):
+        return self.my_rooms
 
     def get_room_users(self, room_id):
         users = []
         for room in self.my_rooms:
             if room.id == room_id:
                 for user_id in room.member_ids:
-                    user_json = pachcarequests.send_get_request(self.API_URL + f'/users/{user_id}', self.headers)
+                    url = f'/users/{user_id}'
+                    user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
                     users.append(User(user_json["data"]))
         return users
+
+    def get_user_info(self, user_id):
+        url = f'/users/{user_id}'
+        user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        return User(user_json["data"])
 
     def get_all_users(self, filters=""):
         page = 1
@@ -76,7 +85,8 @@ class PachcaBot:
             query = ""
 
         while True:
-            users_json = pachcarequests.send_get_request(self.API_URL + f'/users?per=50&page={page}{query}', self.headers)
+            url = f'/users?per=50&page={page}{query}'
+            users_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
             
             if not users_json["data"]:
                 break
@@ -89,11 +99,33 @@ class PachcaBot:
         
         return users
 
-    def get_chat_history(self, room_id):
+    def get_entire_chat_history(self, room_id):
+        page = 1
+        msgs = []
+        while True:
+            url = f'/messages?chat_id={room_id}&per=50&page={page}'
+            messages = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+
+            if not messages["data"]:
+                break
+            
+            for json in messages["data"]:
+                msg = Message(json)
+                msgs.append(msg)
+                    
+            page += 1
+        return msgs
+
+    def get_cached_chat_history(self, room_id):
         for room in self.my_rooms:
             if room.id == room_id:
                 return room.messages
         return []
+
+    def message_get_info(self, msg_id):
+        url = f'/messages/{msg_id}'
+        msg_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        return Message(msg_json["data"])
 
     def message_delete_reaction(self, msg_id, emoji):
         url = f'/messages/{msg_id}/reactions'
@@ -181,7 +213,8 @@ class PachcaBot:
         stop = False
         new_msgs = []
         while not stop:
-            messages = pachcarequests.send_get_request(self.API_URL + f'/messages?chat_id={room.id}&per=50&page={page}', self.headers)
+            url = f'/messages?chat_id={room.id}&per=50&page={page}'
+            messages = pachcarequests.send_get_request(self.API_URL + url, self.headers)
 
             if not messages["data"]:
                 break
@@ -228,7 +261,8 @@ class PachcaBot:
             time.sleep(2)
 
     def __chatrooms_init(self):
-        rooms = pachcarequests.send_get_request(self.API_URL + '/chats', self.headers)
+        url = '/chats'
+        rooms = pachcarequests.send_get_request(self.API_URL + url, self.headers)
         for room in rooms["data"]:
             if room["id"] in BLACKLISTED_ROOMS:
                 print(f'room {room["name"]} blacklisted')
