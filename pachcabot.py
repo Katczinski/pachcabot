@@ -91,16 +91,24 @@ class PachcaBot:
         url = f'/messages/{msg_id}/thread'
         return pachcarequests.send_post_request(self.API_URL + url, self.headers)["data"]
 
-    def message_reply_in_thread(self, msg_id, content):
+    def message_reply_in_thread(self, msg_id, content="", files:List[File]=[]):
         thread = self.message_create_thread(msg_id)
         url = '/messages'
         json = {
             "message": {
             "entity_type": "thread",
             "entity_id": thread["id"],
-            "content": content
+            "content": content,
+            "files": []
             }
         }
+        for file in files:
+            json["message"]["files"].append({
+                "key": file.key,
+                "name": file.name,
+                "file_type": file.file_type,
+                "size": file.size
+            })
         return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
 
     def message_send_in_room(self, room_id, content="", files:List[File]=[]):
