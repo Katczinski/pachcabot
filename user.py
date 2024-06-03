@@ -37,3 +37,21 @@ class User:
         self.user_status = json["user_status"]
         self.bot = json["bot"]
         self.created_at = json["created_at"]
+    
+    def print_info(self):
+        print("id:", self.id)
+        print("first_name:", self.first_name)
+        print("last_name:", self.last_name)
+        print("nickname:", self.nickname)
+        print("email:", self.email)
+        print("phone_number:", self.phone_number)
+        print("department:", self.department)
+        print("role:", self.role)
+        print("suspended:", self.suspended)
+        print("invite_status:", self.invite_status)
+        print("list_tags:", self.list_tags)
+        print("custom_properties:", self.custom_properties)
+        print("user_status:", self.user_status)
+        print("bot:", self.bot)
+        print("created_at:", self.created_at)
+        print("============================")

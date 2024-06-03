@@ -67,6 +67,28 @@ class PachcaBot:
                     users.append(User(user_json["data"]))
         return users
 
+    def get_all_users(self, filters=""):
+        page = 1
+        users = []
+        if filters:
+            query = f'&query={filters}'
+        else:
+            query = ""
+
+        while True:
+            users_json = pachcarequests.send_get_request(self.API_URL + f'/users?per=50&page={page}{query}', self.headers)
+            
+            if not users_json["data"]:
+                break
+            
+            for json in users_json["data"]:
+                user = User(json)
+                users.append(user)
+
+            page += 1
+        
+        return users
+
     def get_chat_history(self, room_id):
         for room in self.my_rooms:
             if room.id == room_id:
@@ -204,7 +226,7 @@ class PachcaBot:
             for room in self.my_rooms:
                     self.__room_routine(room)
             time.sleep(2)
-             
+
     def __chatrooms_init(self):
         rooms = pachcarequests.send_get_request(self.API_URL + '/chats', self.headers)
         for room in rooms["data"]:
