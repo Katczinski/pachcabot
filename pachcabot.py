@@ -123,6 +123,24 @@ class PachcaBot:
                 return room.messages
         return []
 
+    def message_edit(self, msg_id, content="", files:List[File]=[]):
+        url = f'/messages/{msg_id}'
+        json = {
+            "message": {
+                "content": content,
+                "files": []
+            }
+        }
+        for file in files:
+            json["message"]["files"].append({
+                "key": file.key,
+                "name": file.name,
+                "file_type": file.file_type,
+                "size": file.size
+            })
+        return pachcarequests.send_put_request(self.API_URL + url, self.headers, json=json)
+        
+
     def message_get_reactions(self, msg_id):
         url = f'/messages/{msg_id}/reactions'
         reactions = []
