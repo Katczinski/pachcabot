@@ -1,8 +1,8 @@
 # pachcabot
-Bot class for pachca messenger API
+Bot class for pachca messenger API\
 Developed with Python 3.7.9
 
-Implemented methods:
+Implemented methods:\
 ✅ Загрузка файлов\
 ✅ Список сотрудников\
 ✅ Информация о сотруднике\
