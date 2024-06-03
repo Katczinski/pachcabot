@@ -57,6 +57,8 @@ class PachcaBot:
     def get_room_info(self, room_id):
         url = f'/chats/{room_id}'
         room_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        if not room_json["data"]:
+            return {}
         return ChatRoom(room_json["data"])
 
     def get_rooms(self):
@@ -69,12 +71,16 @@ class PachcaBot:
                 for user_id in room.member_ids:
                     url = f'/users/{user_id}'
                     user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+                    if not user_json["data"]:
+                        continue
                     users.append(User(user_json["data"]))
         return users
 
     def get_user_info(self, user_id):
         url = f'/users/{user_id}'
         user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        if not user_json["data"]:
+            return {}
         return User(user_json["data"])
 
     def get_all_users(self, filters=""):
@@ -145,6 +151,8 @@ class PachcaBot:
         url = f'/messages/{msg_id}/reactions'
         reactions = []
         reactions_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        if not reactions_json["data"]:
+            return reactions
         for reaction_json in reactions_json["data"]:
             reactions.append(Reaction(reaction_json))
         return reactions
@@ -152,8 +160,11 @@ class PachcaBot:
     def message_get_info(self, msg_id):
         url = f'/messages/{msg_id}'
         msg_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        if not msg_json["data"]:
+            return {}
         return Message(msg_json["data"])
-
+        
+    
     def message_delete_reaction(self, msg_id, emoji):
         url = f'/messages/{msg_id}/reactions'
         json = {
@@ -216,16 +227,17 @@ class PachcaBot:
 
     def upload_file(self, filename):
         url = "/uploads"
-        uploads = pachcarequests.send_post_request(self.API_URL + url, self.headers)
-        direct_url = uploads.pop("direct_url")
+        uploads_json = pachcarequests.send_post_request(self.API_URL + url, self.headers)
+        # TODO: Check uploads_json
+        direct_url = uploads_json.pop("direct_url")
         try:
             files = { filename: open(filename, 'rb') }
         except Exception as e:
             print(e)
-            return File()
-        pachcarequests.send_post_request(direct_url, data=uploads, files=files)
+            return {}
+        pachcarequests.send_post_request(direct_url, data=uploads_json, files=files)
         
-        filepath = uploads["key"].replace("${filename}", os.path.basename(filename))
+        filepath = uploads_json["key"].replace("${filename}", os.path.basename(filename))
         new_file = File({
             "key": filepath,
             "name": os.path.basename(filename),
@@ -289,8 +301,10 @@ class PachcaBot:
 
     def __chatrooms_init(self):
         url = '/chats'
-        rooms = pachcarequests.send_get_request(self.API_URL + url, self.headers)
-        for room in rooms["data"]:
+        rooms_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        if not rooms_json["data"]:
+            return
+        for room in rooms_json["data"]:
             if room["id"] in BLACKLISTED_ROOMS:
                 print(f'room {room["name"]} blacklisted')
                 continue

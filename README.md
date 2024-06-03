@@ -59,7 +59,7 @@ def handle_new_message():
             print(f'New message from {target_user_lastname}: {msg.content}')
             
 
-bot = pachcabot.PachcaBot(AUTH_TOKEN)
+bot = pachcabot.PachcaBot(AUTH_TOKEN, cache_size=20)
 
 bot.task_create(handle_new_message, "handle_new_message")
 
