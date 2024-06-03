@@ -6,6 +6,7 @@ import sys
 import os
 import queue
 import filetype as Filetype
+from typing import List
 
 import pachcarequests
 from chatroom import ChatRoom
@@ -102,7 +103,7 @@ class PachcaBot:
         }
         return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
 
-    def message_send_in_room(self, room_id, content="", files:list[File]=[]):
+    def message_send_in_room(self, room_id, content="", files:List[File]=[]):
         url = '/messages'
         json = {
             "message": {
