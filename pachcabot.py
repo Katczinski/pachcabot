@@ -13,6 +13,7 @@ from chatroom import ChatRoom
 from message import Message
 from user import User
 from file import File
+from reaction import Reaction
 
 #for debug purposes
 BLACKLISTED_ROOMS = []
@@ -122,6 +123,14 @@ class PachcaBot:
                 return room.messages
         return []
 
+    def message_get_reactions(self, msg_id):
+        url = f'/messages/{msg_id}/reactions'
+        reactions = []
+        reactions_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        for reaction_json in reactions_json["data"]:
+            reactions.append(Reaction(reaction_json))
+        return reactions
+
     def message_get_info(self, msg_id):
         url = f'/messages/{msg_id}'
         msg_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
@@ -134,7 +143,7 @@ class PachcaBot:
         }
         return pachcarequests.send_delete_request(self.API_URL + url, self.headers, json=json)
 
-    def message_react(self, msg_id, emoji):
+    def message_add_reaction(self, msg_id, emoji):
         url = f'/messages/{msg_id}/reactions'
         json = {
             'code': emoji,
