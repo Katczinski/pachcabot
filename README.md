@@ -24,7 +24,7 @@ Implemented methods:\
 ✅ Добавление реакции\
 ✅ Удаление реакции\
 ✅ Список реакций\
-❌ Новая задача
+✅ Новая задача
 
 Example main.py:
 ```
@@ -61,7 +61,7 @@ def handle_new_message():
 
 bot = pachcabot.PachcaBot(AUTH_TOKEN, cache_size=20)
 
-bot.task_create(handle_new_message, "handle_new_message")
+bot.user_task_create(handle_new_message, "handle_new_message")
 
 bot.run()
 ```

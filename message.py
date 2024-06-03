@@ -1,16 +1,16 @@
-import json
+from typing import List
 
 class Message:
-    id = 0
-    entity_type = ""
-    entity_id = 0
-    chat_id = 0
-    content = ""
-    user_id = 0
-    created_at = ""
-    files = []
-    thread = []
-    parent_message_id = 0
+    id:int = 0                  # Идентификатор сообщения
+    entity_type = ""            # Тип сущности, к которой относится сообщение: беседа/канал (discussion), тред (thread) или пользователь (user)
+    entity_id:int = 0           # Идентификатор сущности, к которой относится сообщение (беседы/канала, треда или пользователя)
+    chat_id:int = 0             # Идентификатор чата, в котором находится сообщение
+    content = ""                # Текст сообщения
+    user_id:int = 0             # Идентификатор пользователя, создавшего сообщение
+    created_at = ""             # Дата и время создания сообщения (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    files:List[object] = []     # Прикреплённые файлы
+    thread:object = None        # Тред сообщения. Возвращается как null, если у сообщения нет комментариев.
+    parent_message_id:int = 0   # Идентификатор сообщения, к которому написан ответ. Возвращается как null, если сообщение не является ответом.
 
     def __init__(self, json = {}):
         if json:
