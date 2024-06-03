@@ -203,7 +203,7 @@ class PachcaBot:
         while True:
             for room in self.my_rooms:
                     self.__room_routine(room)
-            time.sleep(1)
+            time.sleep(2)
              
     def __chatrooms_init(self):
         rooms = pachcarequests.send_get_request(self.API_URL + '/chats', self.headers)
