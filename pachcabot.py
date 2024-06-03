@@ -135,12 +135,22 @@ class PachcaBot:
     #   tag_ids:    Идентификаторы тегов, которые будут приглашены в беседу
     # Return value:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
-    def add_tags_to_room(self, room_id:int, tag_ids:List[int]):
+    def add_tags_to_room(self, room_id:int, tag_ids:List[int]) -> Json:
         url = f'/chats/{room_id}/group_tags'
         json = {
             "group_tag_ids": tag_ids
         }
         return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+
+    # kick_tags_from_room:
+    # Arguments:   
+    #   room_id:    Идентификатор беседы или канала
+    #   tag_id:     Идентификатор тега, который будет исключен из беседы
+    # Return value:
+    #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
+    def kick_tags_from_room(self, room_id:int, tag_id:int) -> Json:
+        url = f'/chats/{room_id}/group_tags/{tag_id}'
+        return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
 
     # add_users_to_room:
     # Arguments:   
@@ -149,7 +159,7 @@ class PachcaBot:
     #   silent:     Не создавать в чате системное сообщение о добавлении участника
     # Return value:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
-    def add_users_to_room(self, room_id:int, user_ids:List[int], silent:bool=False):
+    def add_users_to_room(self, room_id:int, user_ids:List[int], silent:bool=False) -> Json:
         url = f'/chats/{room_id}/members'
         json = {
             "member_ids": user_ids,
@@ -163,7 +173,7 @@ class PachcaBot:
     #   user_id:    Идентификатор сотрудника, который будет исключен из беседы
     # Return value:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
-    def kick_user_from_room(self, room_id:int, user_id:int):
+    def kick_user_from_room(self, room_id:int, user_id:int) -> Json:
         url = f'/chats/{room_id}/members/{user_id}'
         return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
 
@@ -178,6 +188,33 @@ class PachcaBot:
         if not room_json["data"]:
             return {}
         return ChatRoom(room_json["data"])
+    
+    # create_new_room
+    # Arguments:
+    #   name	        Название
+    #   member_ids	    Массив идентификаторов пользователей, которые станут участниками
+    #   group_tag_ids	Массив идентификаторов тегов, которые станут участниками
+    #   channel		    Тип: беседа (по умолчанию, false) или канал (true)
+    #   public		    Доступ: закрытый (по умолчанию, false) или открытый (true)
+    # Return value:
+    #   object chatroom.ChatRoom: Созданная беседа или канал
+    def create_new_room(self, name, member_ids:List[int]=[], group_tag_ids:List[int]=[], channel:bool=False, public:bool=False) -> ChatRoom:
+        url = f'/chats'
+        json = {
+            "chat": {
+                "name": name,
+                "member_ids": member_ids,
+                "group_tag_ids": group_tag_ids,
+                "channel": channel,
+                "public": public
+            }
+        }
+        response = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+
+        if not response["data"]:
+            return {}
+        return ChatRoom(response["data"])
+        
 
     # get_rooms:
     # Arguments:   
