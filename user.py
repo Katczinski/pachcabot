@@ -13,14 +13,16 @@ class User:
     suspended:bool = False              # Приостановка доступа
     invite_status:str = ""              # Статус пришлашения: confirmed (принято), sent (отправлено)
     list_tags:List[str] = []            # Массив тегов, привязанных к сотруднику
-    custom_properties:List[CustomProperty] = [] # Дополнительные поля сотрудника
+    custom_properties:List[CustomProperty] # Дополнительные поля сотрудника
     user_status:object = None           # Статус. Возвращается как null, если статус не установлен.
     bot:bool = False                    # Тип: пользователь (false) или бот (true)
     created_at:str = ""                 # Дата создания (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
 
     def __init__(self, json = {}):
+        self.custom_properties = []
         if json:
             self.parse_json(json)
+        
 
     def parse_json(self, json):
         self.id = json["id"]
@@ -52,7 +54,8 @@ class User:
         print("suspended:", self.suspended)
         print("invite_status:", self.invite_status)
         print("list_tags:", self.list_tags)
-        print("custom_properties:", self.custom_properties)
+        print(f'custom_properties[{len(self.custom_properties)}]:')
+        [p.print_info("     ") for p in self.custom_properties]
         print("user_status:", self.user_status)
         print("bot:", self.bot)
         print("created_at:", self.created_at)

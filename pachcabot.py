@@ -111,6 +111,58 @@ class PachcaBot:
             return {}
         return Task(task_json["data"])
 
+    # user_create:
+    # Arguments:   
+    #   first_name:	        Имя
+    #   last_name:	        Фамилия
+    #   nickname:	        Имя пользователя
+    #   email:		        Электронная почта
+    #   phone_number:	    Телефон
+    #   department:         Подразделение
+    #   role:               Уровень доступа: admin (администратор), user (сотрудник), multi_guest (мульти-гость)
+    #   suspended:          Приостановка доступа
+    #   list_tags:          Массив тегов, привязываемых к сотруднику
+    #   custom_properties:  Задаваемые дополнительные поля
+    #   skip_email_notify:  Пропуск этапа отправки приглашения сотруднику (при значении true сотруднику не будет отправлено письмо на электронную почту с приглашением создать аккаунт). Данный параметр полезен в случае предварительного создания аккаунтов сотрудникам перед их входом через SSO.
+    # Return value:
+    #   object user.User: Созданный сотрудник
+    def user_create(self,
+                    first_name:str,
+                    last_name:str,
+                    email:str,
+                    nickname:str="",
+                    phone_number:str="",
+                    department:str="",
+                    role:str="user",
+                    suspended:bool=False,
+                    list_tags:List[str]=[],
+                    custom_properties:List[CustomProperty]=[],
+                    skip_email_notify:bool=False):
+        url = "/users"
+        json = {
+            "user": {
+                "first_name": first_name,
+                "last_name": last_name,
+                "email": email,
+                "nickname": nickname,
+                "phone_number": phone_number,
+                "department": department,
+                "role": role,
+                "suspended": suspended,                
+                "list_tags": list_tags,
+                "custom_properties": []
+            },
+            "skip_email_notify": skip_email_notify
+        }
+        for property in custom_properties:
+            json["user"]["custom_properties"].append(property.to_json())
+
+        user_json = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+
+        if not user_json["data"]:
+            return {}
+        return User(user_json["data"])
+
     # user_get_info:
     # Arguments:   
     #   user_id:    Идентификатор пользователя
