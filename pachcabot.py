@@ -315,10 +315,13 @@ class PachcaBot:
     # Return value:
     #   list of message.Message: Массив всех сообщений в беседе, хранящихся в кэше бота
     def room_get_cached_history(self, room_id) -> List[Message]:
+        messages = []
         for room in self.my_rooms:
-            if room.id == room_id:
-                return room.messages
-        return []
+            with room.mutex:
+                if room.id == room_id:
+                    messages = room.messages
+                    break
+        return messages
 
     # message_edit:
     # Arguments:
