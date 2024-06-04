@@ -1,7 +1,8 @@
+
 class Reaction:
     user_id:int = 0     # Идентификатор пользователя, который добавил реакцию
-    created_at = ""     # Дата и время добавления реакции (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
-    code = ""           # Emoji символ реакции
+    created_at:str = "" # Дата и время добавления реакции (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    code:str = ""       # Emoji символ реакции
 
     def __init__(self, json = {}):
         if json:

@@ -1,21 +1,21 @@
-import json
+from typing import List
 
 class User:
-    id = 0
-    first_name = ""
-    last_name = ""
-    nickname = ""
-    email = ""
-    phone_number = ""
-    department = ""
-    role = ""
-    suspended = False
-    invite_status = ""
-    list_tags = []
-    custom_properties = []
-    user_status = 0
-    bot = False
-    created_at = ""
+    id:int = 0                          # Идентификатор пользователя
+    first_name:str = ""                 # Имя
+    last_name:str = ""                  # Фамилия
+    nickname:str = ""                   # Имя пользователя
+    email:str = ""                      # Электронная почта
+    phone_number:str = ""               # Телефон
+    department:str = ""                 # Подразделение
+    role:str = ""                       # Уровень доступа: admin (администратор), user (сотрудник), multi_guest (мульти-гость)
+    suspended:bool = False              # Приостановка доступа
+    invite_status:str = ""              # Статус пришлашения: confirmed (принято), sent (отправлено)
+    list_tags:List[str] = []            # Массив тегов, привязанных к сотруднику
+    custom_properties:List[object] = [] # Дополнительные поля сотрудника
+    user_status:object = None           # Статус. Возвращается как null, если статус не установлен.
+    bot:bool = False                    # Тип: пользователь (false) или бот (true)
+    created_at:str = ""                 # Дата создания (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
 
     def __init__(self, json = {}):
         if json:

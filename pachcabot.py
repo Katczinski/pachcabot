@@ -39,7 +39,7 @@ class TaskHandle:
         self.thread = thread
 
 class PachcaBot:
-    AUTH_TOKEN = None
+    AUTH_TOKEN:str = None
     API_URL = "https://api.pachca.com/api/shared/v1"
     my_rooms:List[ChatRoom] = []
     new_msg_queue:List[Message] = None

@@ -2,13 +2,13 @@ from typing import List
 
 class Task:
     id:int = 0	                    # Идентификатор созданной задачи
-    kind = ""	                    # Тип
-    content	= ""	                # Описание
-    due_at	= ""	                # Срок выполнения задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    kind:str = ""	                # Тип
+    content:str	= ""	            # Описание
+    due_at:str	= ""	            # Срок выполнения задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
     priority:int = 0	            # Приоритет
     user_id:int = 0	                # Идентификатор пользователя-создателя задачи
-    status = ""	                    # Статус задачи (активная - undone)
-    created_at	= ""	            # Дата и время создания задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    status:str = ""	                # Статус задачи (активная - undone)
+    created_at:str	= ""	        # Дата и время создания задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
     performer_ids:List[int]	= []    # Массив идентификаторов пользователей, привязанных к задаче как «ответственные»
 
     def __init__(self, json = {}):
