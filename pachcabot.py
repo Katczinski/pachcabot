@@ -507,13 +507,6 @@ class PachcaBot:
         self.user_tasks.append(t)
         return t
 
-    def on_message(self, func):
-        print("on message installed")
-        @functools.wraps(func)
-        def wrapper(*args, **kwarg):
-            print("test")
-        return wrapper
-
     def install_message_handler(self, func:Callable[[Message], None]):
         self.message_handler = func
 
@@ -562,7 +555,6 @@ class PachcaBot:
                 new_msgs = self.__update_msg_box(room)
                 for msg in reversed(new_msgs):
                     self.new_msg_queue.put(msg)
-                    print(msg.content, "put in queue")
                 room.last_message_at = updated_room.last_message_at
 
     def __scan_rooms(self):
@@ -591,6 +583,9 @@ class PachcaBot:
             msg = self.queue_get()
             if self.message_handler and msg:
                 self.message_handler(msg)
+            elif msg:
+                print(f'message not handled: {msg.content}')
+
 
     def __task_init_sys(self):
         self.__task_create_sys(self.__scan_rooms, "__sys_scan_rooms")
