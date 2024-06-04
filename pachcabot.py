@@ -175,9 +175,18 @@ class PachcaBot:
             return {}
         return User(user_json["data"])
 
+    # user_delete:
+    # Arguments:
+    #   user_id        Идентификатор пользователя
+    # Return value:
+    #   object Json:   При безошибочном выполнении запроса тело ответа отсутствует
+    def user_delete(self, user_id:int):
+        url = f'/users/{user_id}'
+        return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
+
     # user_edit:
     # Arguments:
-    #   user_id             Идентификатор пользователя   
+    #   user_id             Идентификатор пользователя
     #   first_name:	        Новое имя
     #   last_name:	        Новая фамилия
     #   nickname:	        Новое им пользователя
@@ -202,7 +211,7 @@ class PachcaBot:
                     suspended:bool=None,
                     list_tags:List[str]=None,
                     custom_properties:List[CustomProperty]=None,
-                    skip_email_notify:bool=None):
+                    skip_email_notify:bool=None) -> User:
         args = locals()
         url = f'/users/{user_id}'
         json = {
