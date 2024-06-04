@@ -1,4 +1,5 @@
 from typing import List
+from customproperty import CustomProperty
 
 class User:
     id:int = 0                          # Идентификатор пользователя
@@ -12,7 +13,7 @@ class User:
     suspended:bool = False              # Приостановка доступа
     invite_status:str = ""              # Статус пришлашения: confirmed (принято), sent (отправлено)
     list_tags:List[str] = []            # Массив тегов, привязанных к сотруднику
-    custom_properties:List[object] = [] # Дополнительные поля сотрудника
+    custom_properties:List[CustomProperty] = [] # Дополнительные поля сотрудника
     user_status:object = None           # Статус. Возвращается как null, если статус не установлен.
     bot:bool = False                    # Тип: пользователь (false) или бот (true)
     created_at:str = ""                 # Дата создания (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
@@ -33,7 +34,8 @@ class User:
         self.suspended = json["suspended"]
         self.invite_status = json["invite_status"]
         self.list_tags = json["list_tags"]
-        self.custom_properties = json["custom_properties"]
+        for property_json in json["custom_properties"]:
+            self.custom_properties.append(CustomProperty(property_json))
         self.user_status = json["user_status"]
         self.bot = json["bot"]
         self.created_at = json["created_at"]

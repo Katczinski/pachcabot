@@ -20,6 +20,7 @@ from file import File
 from task import Task
 from reaction import Reaction
 from tag import Tag
+from customproperty import CustomProperty
 
 #for debug purposes
 BLACKLISTED_ROOMS = []
@@ -63,7 +64,28 @@ class PachcaBot:
         }
         self.__chatrooms_init()
         self.__task_init_sys()
+
+    # custom_properties_get:
+    # Arguments:   
+    #   None
+    # Return value:
+    #   array of customproperty.CustomProperty: Массив дополнительных полей
+    def custom_properties_get(self) -> List[CustomProperty]:
+        url = f'/custom_properties?entity_type=User'
+
+        customproperty_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+
+        if not customproperty_json["data"]:
+            return []
         
+        properties = []
+        for property_json in customproperty_json["data"]:
+            property = CustomProperty(property_json)
+            properties.append(property)
+
+        return properties
+
+
     # create_new_task:
     # Arguments:   
     #   kind:           Тип. call (позвонить контакту), meeting (встреча), reminder (напоминание), event (событие), email (написать письмо)
