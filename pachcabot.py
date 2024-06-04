@@ -42,7 +42,7 @@ class PachcaBot:
     AUTH_TOKEN:str = None
     API_URL = "https://api.pachca.com/api/shared/v1"
     my_rooms:List[ChatRoom] = []
-    new_msg_queue:List[Message] = None
+    new_msg_queue:queue.Queue = queue.Queue()
     headers:object = {}
     cache_size:int = 0
     user_tasks:List[TaskHandle] = []
@@ -57,7 +57,6 @@ class PachcaBot:
     #   None
     def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
-        self.new_msg_queue = queue.Queue()
         self.cache_size = cache_size
         self.headers = {
             'Authorization': f'Bearer {self.AUTH_TOKEN}',
