@@ -180,7 +180,7 @@ class PachcaBot:
     #   user_id        Идентификатор пользователя
     # Return value:
     #   object Json:   При безошибочном выполнении запроса тело ответа отсутствует
-    def user_delete(self, user_id:int):
+    def user_delete(self, user_id:int) -> Json:
         url = f'/users/{user_id}'
         return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
 
@@ -320,6 +320,31 @@ class PachcaBot:
             page += 1
         
         return tags
+    
+    # room_edit:
+    # Arguments:   
+    #   room_id:    Идентификатор беседы или канала
+    # Return value:
+    #   object chatroom.ChatRoom: Отредактированная беседа
+    def room_edit(self, room_id:int, name:str=None, public:bool=None) -> ChatRoom:
+        args = locals()
+        url = f'/chats/{room_id}'
+        json = {
+            "chat": {
+            },
+        }
+        for arg in list(args)[2:4]:
+            if args[arg] is not None:
+                json["chat"][arg] = Json.loads(Json.dumps(args[arg],
+                                                        default=lambda x: getattr(x, '__dict__', str(x)),
+                                                        sort_keys=False,
+                                                        indent=4))
+        
+        chat_json = pachcarequests.send_put_request(self.API_URL + url, self.headers, json=json)
+
+        if not chat_json["data"]:
+            return {}
+        return ChatRoom(chat_json["data"])
 
     # room_get_chat_history:
     # Arguments:   
@@ -617,14 +642,6 @@ class PachcaBot:
                 "size": file.size
             })
         return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
-    
-    # queue_get:
-    # Arguments:
-    #   None
-    # Return value:
-    #   object message.Message: Первое сообщение в очереди (FIFO) новых сообщений
-    def queue_get(self) -> Message:
-        return self.new_msg_queue.get()
 
     # upload_file:
     # Arguments:
@@ -655,11 +672,14 @@ class PachcaBot:
     def on_message(self, func):
         @functools.wraps(func)
         def wrapper(self):
-            msg = self.queue_get()
+            msg = self.__queue_get()
             if func and msg:
                 func(msg)
         self.event_handlers["on_message"] = wrapper
         return wrapper
+
+    def __queue_get(self) -> Message:
+        return self.new_msg_queue.get()
 
     def __update_msg_box(self, room):
         page = 1
@@ -736,7 +756,7 @@ class PachcaBot:
             if "on_message" in self.event_handlers:
                 self.event_handlers["on_message"](self)
             else:
-                msg = self.queue_get()
+                msg = self.__queue_get()
                 if msg:
                     print(f'msg not handled: user[{msg.user_id}]: {msg.content}')
 
