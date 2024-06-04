@@ -58,14 +58,14 @@ def say_happy_birthday(msg):
 
 bot = pachcabot.PachcaBot(AUTH_TOKEN, cache_size=20)
 
-user = bot.users_get_all(filters="Smith")[0]
+birthday_boy = bot.users_get_all(filters="Smith")[0]
 
 @bot.on_message
 def message_handler(msg:Message):
     if msg.user_id == BOT_ID:
         return
-    if msg.user_id == user.id and user.id != 0:
-        print(f'New message from {user.last_name}: {msg.content}')   
+    if birthday_boy and msg.user_id == birthday_boy.id:
+        print(f'New message from {birthday_boy.last_name} {birthday_boy.first_name}: {msg.content}')   
         say_happy_birthday(msg)       
 
 bot.run()
