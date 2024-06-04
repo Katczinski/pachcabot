@@ -584,7 +584,7 @@ class PachcaBot:
             if self.message_handler and msg:
                 self.message_handler(msg)
             elif msg:
-                print(f'message not handled: {msg.content}')
+                print(f'message not handled: user[{msg.user_id}] : {msg.content}')
 
 
     def __task_init_sys(self):
