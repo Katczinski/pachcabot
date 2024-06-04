@@ -4,8 +4,11 @@ import sys
 import os
 import queue
 import datetime
+import functools
 import filetype as Filetype
 from typing import List
+from typing import Callable
+from typing import Any
 import json as Json
 
 import pachcarequests
@@ -44,17 +47,20 @@ class PachcaBot:
     cache_size:int = 0
     user_tasks:List[TaskHandle] = []
     _sys_tasks:List[TaskHandle] = []
-    uploads = {} # unused
+    uploads:List[File] = [] # unused
+    message_handler: Callable[[Message], None] = None
 
     def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
         self.new_msg_queue = queue.Queue()
-        self.uploads = dict()
         self.cache_size = cache_size
         self.headers = {
             'Authorization': f'Bearer {self.AUTH_TOKEN}',
             'Content-Type': 'application/json'
         }
+        self.__chatrooms_init()
+        self.__task_init_sys()
+        
 
     # create_new_task:
     # Arguments:   
@@ -81,12 +87,12 @@ class PachcaBot:
             return {}
         return Task(response["data"])
     
-    # get_users_by_tag:
+    # users_get_by_tag:
     # Arguments:   
     #   tag_id:     Идентификатор тега
     # Return value:
     #   list of user.User: Массив списка сотрудников тега
-    def get_users_by_tag(self, tag_id:int) -> List[User]:
+    def users_get_by_tag(self, tag_id:int) -> List[User]:
         page = 1
         users = []
 
@@ -105,12 +111,12 @@ class PachcaBot:
         
         return users
 
-    # get_tags:
+    # tags_get_all:
     # Arguments:   
     #   None
     # Return value:
     #   list of tag.Tag: Массив списка тегов
-    def get_tags(self) -> List[Tag]:
+    def tags_get_all(self) -> List[Tag]:
         page = 1
         tags = []
 
@@ -129,37 +135,37 @@ class PachcaBot:
         
         return tags
 
-    # add_tags_to_room:
+    # room_add_users_by_tag:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     #   tag_ids:    Идентификаторы тегов, которые будут приглашены в беседу
     # Return value:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
-    def add_tags_to_room(self, room_id:int, tag_ids:List[int]) -> Json:
+    def room_add_users_by_tag(self, room_id:int, tag_ids:List[int]) -> Json:
         url = f'/chats/{room_id}/group_tags'
         json = {
             "group_tag_ids": tag_ids
         }
         return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
 
-    # kick_tags_from_room:
+    # room_kick_user_by_tag:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     #   tag_id:     Идентификатор тега, который будет исключен из беседы
     # Return value:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
-    def kick_tags_from_room(self, room_id:int, tag_id:int) -> Json:
+    def room_kick_users_by_tag(self, room_id:int, tag_id:int) -> Json:
         url = f'/chats/{room_id}/group_tags/{tag_id}'
         return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
 
-    # add_users_to_room:
+    # room_add_user_by_id:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     #   user_ids:   Идентификаторы сотрудников, которые будут приглашены в беседу
     #   silent:     Не создавать в чате системное сообщение о добавлении участника
     # Return value:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
-    def add_users_to_room(self, room_id:int, user_ids:List[int], silent:bool=False) -> Json:
+    def room_add_user_by_id(self, room_id:int, user_ids:List[int], silent:bool=False) -> Json:
         url = f'/chats/{room_id}/members'
         json = {
             "member_ids": user_ids,
@@ -167,29 +173,29 @@ class PachcaBot:
         }
         return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
 
-    # kick_user_from_room:
+    # room_kick_user_by_id:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     #   user_id:    Идентификатор сотрудника, который будет исключен из беседы
     # Return value:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
-    def kick_user_from_room(self, room_id:int, user_id:int) -> Json:
+    def room_kick_user_by_id(self, room_id:int, user_id:int) -> Json:
         url = f'/chats/{room_id}/members/{user_id}'
         return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
 
-    # get_room_info:
+    # room_get_info:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     # Return value:
     #   object chatroom.ChatRoom
-    def get_room_info(self, room_id) -> ChatRoom:
+    def room_get_info(self, room_id) -> ChatRoom:
         url = f'/chats/{room_id}'
         room_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
         if not room_json["data"]:
             return {}
         return ChatRoom(room_json["data"])
     
-    # create_new_room
+    # room_create
     # Arguments:
     #   name	        Название
     #   member_ids	    Массив идентификаторов пользователей, которые станут участниками
@@ -198,7 +204,7 @@ class PachcaBot:
     #   public		    Доступ: закрытый (по умолчанию, false) или открытый (true)
     # Return value:
     #   object chatroom.ChatRoom: Созданная беседа или канал
-    def create_new_room(self, name, member_ids:List[int]=[], group_tag_ids:List[int]=[], channel:bool=False, public:bool=False) -> ChatRoom:
+    def room_create(self, name, member_ids:List[int]=[], group_tag_ids:List[int]=[], channel:bool=False, public:bool=False) -> ChatRoom:
         url = f'/chats'
         json = {
             "chat": {
@@ -216,20 +222,20 @@ class PachcaBot:
         return ChatRoom(response["data"])
         
 
-    # get_rooms:
+    # rooms_get_all:
     # Arguments:   
     #   None
     # Return value:
     #   list of chatroom.ChatRoom: Каналы, к которым подключен бот
-    def get_rooms(self) -> List[ChatRoom]:
+    def rooms_get_all(self) -> List[ChatRoom]:
         return self.my_rooms
 
-    # get_room_users:
+    # room_get_users:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     # Return value:
     #   list of user.User: Пользователи, состоящие в беседе
-    def get_room_users(self, room_id) -> List[User]:
+    def room_get_users(self, room_id) -> List[User]:
         users = []
         for room in self.my_rooms:
             if room.id == room_id:
@@ -241,24 +247,24 @@ class PachcaBot:
                     users.append(User(user_json["data"]))
         return users
 
-    # get_user_info:
+    # user_get_info:
     # Arguments:   
     #   user_id:    Идентификатор пользователя
     # Return value:
     #   object user.User: Пользователь, соответствующий предоставленному идентификатору
-    def get_user_info(self, user_id) -> User:
+    def user_get_info(self, user_id) -> User:
         url = f'/users/{user_id}'
         user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
         if not user_json["data"]:
             return {}
         return User(user_json["data"])
     
-    # get_all_users:
+    # users_get_all:
     # Arguments:   
     #   filters:    Поисковая фраза для фильтрации результатов (поиск идет по полям first_name (имя), last_name (фамилия), email (электронная почта), phone_number (телефон) и nickname (никнейм))
     # Return value:
     #   list of user.User: Массив списка сотрудников
-    def get_all_users(self, filters="") -> List[User]:
+    def users_get_all(self, filters="") -> List[User]:
         page = 1
         users = []
         if filters:
@@ -281,12 +287,12 @@ class PachcaBot:
         
         return users
 
-    # get_entire_chat_history:
+    # room_get_chat_history:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     # Return value:
     #   list of message.Message: Массив всех сообщений в беседе
-    def get_entire_chat_history(self, room_id) -> List[Message]:
+    def room_get_chat_history(self, room_id) -> List[Message]:
         page = 1
         msgs = []
         while True:
@@ -303,12 +309,12 @@ class PachcaBot:
             page += 1
         return msgs
 
-    # get_cached_chat_history:
+    # room_get_cached_history:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     # Return value:
     #   list of message.Message: Массив всех сообщений в беседе, хранящихся в кэше бота
-    def get_cached_chat_history(self, room_id) -> List[Message]:
+    def room_get_cached_history(self, room_id) -> List[Message]:
         for room in self.my_rooms:
             if room.id == room_id:
                 return room.messages
@@ -337,7 +343,19 @@ class PachcaBot:
                 "size": file.size
             })
         return pachcarequests.send_put_request(self.API_URL + url, self.headers, json=json)
-        
+
+    # message_get_info:
+    # Arguments:
+    #   msg_id:     Идентификатор сообщения
+    # Return value:
+    #   object message.Message: Информация о сообщении
+    def message_get_info(self, msg_id) -> Message:
+        url = f'/messages/{msg_id}'
+        msg_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        if not msg_json["data"]:
+            return {}
+        return Message(msg_json["data"])
+
     # message_get_reactions:
     # Arguments:
     #   msg_id:     Идентификатор сообщения
@@ -353,18 +371,6 @@ class PachcaBot:
             reactions.append(Reaction(reaction_json))
         return reactions
 
-    # message_get_info:
-    # Arguments:
-    #   msg_id:     Идентификатор сообщения
-    # Return value:
-    #   object message.Message: Информация о сообщении
-    def message_get_info(self, msg_id) -> Message:
-        url = f'/messages/{msg_id}'
-        msg_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
-        if not msg_json["data"]:
-            return {}
-        return Message(msg_json["data"])
-        
     # message_delete_reaction:
     # Arguments:
     #   msg_id:     Идентификатор сообщения
@@ -487,7 +493,8 @@ class PachcaBot:
         })
         return new_file
 
-    # task_create:
+
+    # user_task_create: # TODO: RENAME
     # Arguments:
     #   task_function:  Функция, исполняющая рутину создаваемой задачи
     #   task_name:      Именной идентификатор функции
@@ -499,6 +506,16 @@ class PachcaBot:
         t.thread = threading.Thread(target=task_function, daemon=True)
         self.user_tasks.append(t)
         return t
+
+    def on_message(self, func):
+        print("on message installed")
+        @functools.wraps(func)
+        def wrapper(*args, **kwarg):
+            print("test")
+        return wrapper
+
+    def install_message_handler(self, func:Callable[[Message], None]):
+        self.message_handler = func
 
     def __update_msg_box(self, room):
         page = 1
@@ -534,7 +551,7 @@ class PachcaBot:
     def __room_routine(self, room):
         with room.mutex:
             try:
-                updated_room = self.get_room_info(room.id)
+                updated_room = self.room_get_info(room.id)
             except Exception as e:
                 print(e)
                 return
@@ -545,6 +562,7 @@ class PachcaBot:
                 new_msgs = self.__update_msg_box(room)
                 for msg in reversed(new_msgs):
                     self.new_msg_queue.put(msg)
+                    print(msg.content, "put in queue")
                 room.last_message_at = updated_room.last_message_at
 
     def __scan_rooms(self):
@@ -568,8 +586,15 @@ class PachcaBot:
             self.__update_msg_box(new_room)
             print(f'room {new_room.name} inited. Message count: {len(new_room.messages)}')
 
+    def __handle_message(self):
+        while True:
+            msg = self.queue_get()
+            if self.message_handler and msg:
+                self.message_handler(msg)
+
     def __task_init_sys(self):
         self.__task_create_sys(self.__scan_rooms, "__sys_scan_rooms")
+        self.__task_create_sys(self.__handle_message, "__sys_handle_message")
 
     def __task_create_sys(self, task_function, task_name):
         t = TaskHandle()
@@ -592,8 +617,6 @@ class PachcaBot:
     # Return value:
     #   None
     def run(self) -> None:
-        self.__chatrooms_init()
-        self.__task_init_sys()
         self.__start_tasks_sys()
         self.__start_tasks()
         try:

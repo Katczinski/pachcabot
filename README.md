@@ -31,39 +31,28 @@ Implemented methods:\
 Example main.py:
 ```
 import pachcabot
+from message import Message
 
-AUTH_TOKEN = YOUR_API_TOKEN_GOES_HERE
-TEST_CHAT = GROUP_ENTITY_ID_GOES_HERE   # for the sake of example
-BOT_ID = BOT_USER_ID_GOES_HERE          # for the sake of example
+AUTH_TOKEN = YOUR_API_TOKEN_GOES_HERE       # string  # required!
+TARGET_CHAT = GROUP_ENTITY_ID_GOES_HERE     # integer # for the sake of example
+BOT_ID = BOT_USER_ID_GOES_HERE              # integer # for the sake of example
 
 def say_happy_birthday(msg):
   bot.message_reply_in_thread(msg.id, "Happy Birthday!!!🎂🎂🎂")
   bot.message_add_reaction(msg.id, '🎂')
 
-def handle_new_message():
-    target_user_lastname = "Smith"
-    target_user_id = 0
-    target_chat_id = TEST_CHAT
-
-    users = bot.get_room_users(target_chat_id)
-
-    for user in users:
-        if user.last_name == target_user_lastname:
-            target_user_id = user.id
-            print(target_user_lastname, "found:", target_user_id)
-
-    while True:
-        msg = bot.queue_get()
-        if not msg or msg.user_id == BOT_ID:
-            continue
-        if msg.user_id == target_user_id and target_user_id != 0 and msg.chat_id == target_chat_id:
-            say_happy_birthday(msg)
-            print(f'New message from {target_user_lastname}: {msg.content}')
-            
+def message_handler(msg:Message):
+    if msg.user_id == BOT_ID:
+        return
+    if msg.user_id == user.id and user.id != 0:
+        print(f'New message from {user.last_name}: {msg.content}')   
+        say_happy_birthday(msg)       
 
 bot = pachcabot.PachcaBot(AUTH_TOKEN, cache_size=20)
 
-bot.user_task_create(handle_new_message, "handle_new_message")
+user = bot.users_get_all(filters="Smith")[0]
+
+bot.install_message_handler(message_handler)
 
 bot.run()
 ```
