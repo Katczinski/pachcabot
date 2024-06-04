@@ -45,7 +45,6 @@ class PachcaBot:
     new_msg_queue:queue.Queue = queue.Queue()
     headers:object = {}
     cache_size:int = 0
-    user_tasks:List[TaskHandle] = []
     _sys_tasks:List[TaskHandle] = []
     uploads:List[File] = [] # unused
     event_handlers:Dict[str, Callable] = {}
@@ -85,10 +84,10 @@ class PachcaBot:
                 "performer_ids": performer_ids
             }
         }
-        response = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
-        if not response["data"]:
+        task_json = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        if not task_json["data"]:
             return {}
-        return Task(response["data"])
+        return Task(task_json["data"])
 
     # user_get_info:
     # Arguments:   
@@ -574,7 +573,9 @@ class PachcaBot:
             new_room.print_info()
             self.my_rooms.append(new_room)
             self.__update_msg_box(new_room)
+            print("=================")
             print(f'room {new_room.name} inited. Message count: {len(new_room.messages)}')
+            print("=================")
 
     def __handle_message(self):
         while True:
@@ -600,10 +601,6 @@ class PachcaBot:
             print(f'starting task {task.name}')
             task.thread.start()
 
-    def __start_tasks(self):
-        for task in self.user_tasks:
-            print(f'starting task {task.name}')
-            task.thread.start()
     # run
     # Arguments:
     #   None
@@ -611,10 +608,9 @@ class PachcaBot:
     #   None
     def run(self) -> None:
         self.__start_tasks_sys()
-        self.__start_tasks()
         try:
             while True:
-                # Could do some work here
+                # Could do some work here?
                 pass
         except KeyboardInterrupt:
             print("Ctrl+C pressed...")

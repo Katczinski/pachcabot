@@ -42,4 +42,3 @@ class ChatRoom:
         print("channel:", self.channel)
         print("public:", self.public)
         print("last_message_at:", self.last_message_at)
-        print("=================\n")
