@@ -48,9 +48,13 @@ class PachcaBot:
     user_tasks:List[TaskHandle] = []
     _sys_tasks:List[TaskHandle] = []
     uploads:List[File] = [] # unused
-    message_handler: Callable[[Message], None] = None
     event_handlers:Dict[str, Callable] = {}
 
+    # init:
+    # Arguments:
+    #   cache_size: Размер кэша для массива сообщений каждой комнаты. 0 - Без ограничений
+    # Return value:
+    #   None
     def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
         self.new_msg_queue = queue.Queue()
@@ -62,7 +66,6 @@ class PachcaBot:
         self.__chatrooms_init()
         self.__task_init_sys()
         
-
     # create_new_task:
     # Arguments:   
     #   kind:           Тип. call (позвонить контакту), meeting (встреча), reminder (напоминание), event (событие), email (написать письмо)
@@ -72,7 +75,7 @@ class PachcaBot:
     #   performer_ids:  Массив идентификаторов пользователей, привязываемых к задаче как «ответственные»
     # Return value:
     #   object task.Task 
-    def create_new_task(self, kind, content, due_at:datetime.datetime, priority, performer_ids:List[int]) -> Task:
+    def task_create(self, kind, content, due_at:datetime.datetime, priority, performer_ids:List[int]) -> Task:
         url = f'/tasks'
         json = {
             "task": {
@@ -87,7 +90,47 @@ class PachcaBot:
         if not response["data"]:
             return {}
         return Task(response["data"])
+
+    # user_get_info:
+    # Arguments:   
+    #   user_id:    Идентификатор пользователя
+    # Return value:
+    #   object user.User: Пользователь, соответствующий предоставленному идентификатору
+    def user_get_info(self, user_id) -> User:
+        url = f'/users/{user_id}'
+        user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        if not user_json["data"]:
+            return {}
+        return User(user_json["data"])
     
+    # users_get_all:
+    # Arguments:   
+    #   filters:    Поисковая фраза для фильтрации результатов (поиск идет по полям first_name (имя), last_name (фамилия), email (электронная почта), phone_number (телефон) и nickname (никнейм))
+    # Return value:
+    #   list of user.User: Массив списка сотрудников
+    def users_get_all(self, filters="") -> List[User]:
+        page = 1
+        users = []
+        if filters:
+            query = f'&query={filters}'
+        else:
+            query = ""
+
+        while True:
+            url = f'/users?per=50&page={page}{query}'
+            users_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+            
+            if not users_json["data"]:
+                break
+            
+            for json in users_json["data"]:
+                user = User(json)
+                users.append(user)
+
+            page += 1
+        
+        return users
+
     # users_get_by_tag:
     # Arguments:   
     #   tag_id:     Идентификатор тега
@@ -135,6 +178,42 @@ class PachcaBot:
             page += 1
         
         return tags
+
+    # room_get_chat_history:
+    # Arguments:   
+    #   room_id:    Идентификатор беседы или канала
+    # Return value:
+    #   list of message.Message: Массив всех сообщений в беседе
+    def room_get_chat_history(self, room_id) -> List[Message]:
+        page = 1
+        msgs = []
+        while True:
+            url = f'/messages?chat_id={room_id}&per=50&page={page}'
+            messages = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+
+            if not messages["data"]:
+                break
+            
+            for json in messages["data"]:
+                msg = Message(json)
+                msgs.append(msg)
+                    
+            page += 1
+        return msgs
+
+    # room_get_cached_history:
+    # Arguments:   
+    #   room_id:    Идентификатор беседы или канала
+    # Return value:
+    #   list of message.Message: Массив всех сообщений в беседе, хранящихся в кэше бота
+    def room_get_cached_history(self, room_id) -> List[Message]:
+        messages = []
+        for room in self.my_rooms:
+            with room.mutex:
+                if room.id == room_id:
+                    messages = room.messages
+                    break
+        return messages
 
     # room_add_users_by_tag:
     # Arguments:   
@@ -247,82 +326,6 @@ class PachcaBot:
                         continue
                     users.append(User(user_json["data"]))
         return users
-
-    # user_get_info:
-    # Arguments:   
-    #   user_id:    Идентификатор пользователя
-    # Return value:
-    #   object user.User: Пользователь, соответствующий предоставленному идентификатору
-    def user_get_info(self, user_id) -> User:
-        url = f'/users/{user_id}'
-        user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
-        if not user_json["data"]:
-            return {}
-        return User(user_json["data"])
-    
-    # users_get_all:
-    # Arguments:   
-    #   filters:    Поисковая фраза для фильтрации результатов (поиск идет по полям first_name (имя), last_name (фамилия), email (электронная почта), phone_number (телефон) и nickname (никнейм))
-    # Return value:
-    #   list of user.User: Массив списка сотрудников
-    def users_get_all(self, filters="") -> List[User]:
-        page = 1
-        users = []
-        if filters:
-            query = f'&query={filters}'
-        else:
-            query = ""
-
-        while True:
-            url = f'/users?per=50&page={page}{query}'
-            users_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
-            
-            if not users_json["data"]:
-                break
-            
-            for json in users_json["data"]:
-                user = User(json)
-                users.append(user)
-
-            page += 1
-        
-        return users
-
-    # room_get_chat_history:
-    # Arguments:   
-    #   room_id:    Идентификатор беседы или канала
-    # Return value:
-    #   list of message.Message: Массив всех сообщений в беседе
-    def room_get_chat_history(self, room_id) -> List[Message]:
-        page = 1
-        msgs = []
-        while True:
-            url = f'/messages?chat_id={room_id}&per=50&page={page}'
-            messages = pachcarequests.send_get_request(self.API_URL + url, self.headers)
-
-            if not messages["data"]:
-                break
-            
-            for json in messages["data"]:
-                msg = Message(json)
-                msgs.append(msg)
-                    
-            page += 1
-        return msgs
-
-    # room_get_cached_history:
-    # Arguments:   
-    #   room_id:    Идентификатор беседы или канала
-    # Return value:
-    #   list of message.Message: Массив всех сообщений в беседе, хранящихся в кэше бота
-    def room_get_cached_history(self, room_id) -> List[Message]:
-        messages = []
-        for room in self.my_rooms:
-            with room.mutex:
-                if room.id == room_id:
-                    messages = room.messages
-                    break
-        return messages
 
     # message_edit:
     # Arguments:
@@ -497,20 +500,6 @@ class PachcaBot:
         })
         return new_file
 
-
-    # user_task_create: # TODO: RENAME
-    # Arguments:
-    #   task_function:  Функция, исполняющая рутину создаваемой задачи
-    #   task_name:      Именной идентификатор функции
-    # Return value:
-    #   object TaskHandle: Дескриптор созданной задачи
-    def user_task_create(self, task_function, task_name) -> TaskHandle:
-        t = TaskHandle()
-        t.name = task_name
-        t.thread = threading.Thread(target=task_function, daemon=True)
-        self.user_tasks.append(t)
-        return t
-
     def on_message(self, func):
         @functools.wraps(func)
         def wrapper(self):
@@ -519,10 +508,6 @@ class PachcaBot:
                 func(msg)
         self.event_handlers["on_message"] = wrapper
         return wrapper
-
-
-    def install_message_handler(self, func:Callable[[Message], None]):
-        self.message_handler = func
 
     def __update_msg_box(self, room):
         page = 1
