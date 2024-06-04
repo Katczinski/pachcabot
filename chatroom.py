@@ -4,14 +4,14 @@ import threading
 from message import Message
 class ChatRoom:
     id:int = 0                      # Идентификатор беседы или канала
-    name = ""                       # Название
+    name:str = ""                   # Название
     owner_id:int = 0                # Идентификатор пользователя, создавшего беседу или канал
-    created_at = ""                 # Дата и время создания беседы или канала (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    created_at:str = ""             # Дата и время создания беседы или канала (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
     member_ids:List[int] = []       # Массив идентификаторов пользователей, участников
     group_tag_ids:List[int] = []    # Массив идентификаторов тегов, участников
     channel:bool = False            # Тип: беседа (false) или канал (true)
     public:bool = False             # Доступ: закрытый (false) или открытый (true)
-    last_message_at = ""            # Дата и время создания последнего сообщения в беседе/калане (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    last_message_at:str = ""        # Дата и время создания последнего сообщения в беседе/калане (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
     messages:List[Message] = []     # Кэш последних сообщений
     mutex:threading.Lock = None     # Мьютекс
 
