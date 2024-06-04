@@ -1,18 +1,29 @@
 from typing import List
 
 class Message:
-    id:int = 0                  # Идентификатор сообщения
-    entity_type:str = ""        # Тип сущности, к которой относится сообщение: беседа/канал (discussion), тред (thread) или пользователь (user)
-    entity_id:int = 0           # Идентификатор сущности, к которой относится сообщение (беседы/канала, треда или пользователя)
-    chat_id:int = 0             # Идентификатор чата, в котором находится сообщение
-    content:str = ""            # Текст сообщения
-    user_id:int = 0             # Идентификатор пользователя, создавшего сообщение
-    created_at:str = ""         # Дата и время создания сообщения (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
-    files:List[object] = []     # Прикреплённые файлы
-    thread:object = None        # Тред сообщения. Возвращается как null, если у сообщения нет комментариев.
-    parent_message_id:int = 0   # Идентификатор сообщения, к которому написан ответ. Возвращается как null, если сообщение не является ответом.
+    id:int                  # Идентификатор сообщения
+    entity_type:str         # Тип сущности, к которой относится сообщение: беседа/канал (discussion), тред (thread) или пользователь (user)
+    entity_id:int           # Идентификатор сущности, к которой относится сообщение (беседы/канала, треда или пользователя)
+    chat_id:int             # Идентификатор чата, в котором находится сообщение
+    content:str             # Текст сообщения
+    user_id:int             # Идентификатор пользователя, создавшего сообщение
+    created_at:str          # Дата и время создания сообщения (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    files:List[object]      # Прикреплённые файлы
+    thread:object           # Тред сообщения. Возвращается как null, если у сообщения нет комментариев.
+    parent_message_id:int   # Идентификатор сообщения, к которому написан ответ. Возвращается как null, если сообщение не является ответом.
 
     def __init__(self, json = {}):
+        self.id = int()
+        self.entity_type = str()
+        self.entity_id = int()
+        self.chat_id = int()
+        self.content = str()
+        self.user_id = int()
+        self.created_at = str()
+        self.files = list[object]()
+        self.thread = object()
+        self.parent_message_id = int()
+
         if json:
             self.parse_json(json)
     

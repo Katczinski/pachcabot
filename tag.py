@@ -1,10 +1,14 @@
 
 class Tag:
-    id:int = 0              # Идентификатор тега
-    name:str = ""           # Название тега
-    users_count:int = 0     # Количество сотрудников, которые имеют этот тег
+    id:int              # Идентификатор тега
+    name:str            # Название тега
+    users_count:int     # Количество сотрудников, которые имеют этот тег
 
     def __init__(self, json = {}):
+        self.id = int()
+        self.name = str()
+        self.users_count = int()
+
         if json:
             self.parse_json(json)
 

@@ -40,15 +40,15 @@ class TaskHandle:
         self.thread = thread
 
 class PachcaBot:
-    AUTH_TOKEN:str = None
+    AUTH_TOKEN:str
     API_URL = "https://api.pachca.com/api/shared/v1"
-    my_rooms:List[ChatRoom] = []
-    new_msg_queue:queue.Queue = queue.Queue()
-    headers:object = {}
-    cache_size:int = 0
-    _sys_tasks:List[TaskHandle] = []
-    uploads:List[File] = [] # unused
-    event_handlers:Dict[str, Callable] = {}
+    my_rooms:List[ChatRoom]
+    new_msg_queue:queue.Queue
+    headers:object
+    cache_size:int
+    _sys_tasks:List[TaskHandle]
+    uploads:List[File] # unused
+    event_handlers:Dict[str, Callable]
 
     # init:
     # Arguments:
@@ -58,10 +58,16 @@ class PachcaBot:
     def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
         self.cache_size = cache_size
+        self.my_rooms = list[ChatRoom]()
+        self.new_msg_queue = queue.Queue()
+        self._sys_tasks = list[TaskHandle]()
+        self.uploads = list[File]()
+        self.event_handlers = dict[str, Callable]()
         self.headers = {
             'Authorization': f'Bearer {self.AUTH_TOKEN}',
             'Content-Type': 'application/json'
         }
+
         self.__chatrooms_init()
         self.__task_init_sys()
 

@@ -1,17 +1,27 @@
 from typing import List
 
 class Task:
-    id:int = 0	                    # Идентификатор созданной задачи
-    kind:str = ""	                # Тип
-    content:str	= ""	            # Описание
-    due_at:str	= ""	            # Срок выполнения задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
-    priority:int = 0	            # Приоритет
-    user_id:int = 0	                # Идентификатор пользователя-создателя задачи
-    status:str = ""	                # Статус задачи (активная - undone)
-    created_at:str	= ""	        # Дата и время создания задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
-    performer_ids:List[int]	= []    # Массив идентификаторов пользователей, привязанных к задаче как «ответственные»
+    id:int	                    # Идентификатор созданной задачи
+    kind:str	                # Тип
+    content:str	                # Описание
+    due_at:str	                # Срок выполнения задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    priority:int                # Приоритет
+    user_id:int	                # Идентификатор пользователя-создателя задачи
+    status:str	                # Статус задачи (активная - undone)
+    created_at:str	            # Дата и время создания задачи (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    performer_ids:List[int]     # Массив идентификаторов пользователей, привязанных к задаче как «ответственные»
 
     def __init__(self, json = {}):
+        self.id = int()
+        self.kind = str()
+        self.content = str()
+        self.due_at = str()
+        self.priority = int()
+        self.user_id = int()
+        self.status = str()
+        self.created_at = str()
+        self.performer_ids = list[int]()
+
         if json:
             self.parse_json(json)
 

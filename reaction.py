@@ -1,10 +1,14 @@
 
 class Reaction:
-    user_id:int = 0     # Идентификатор пользователя, который добавил реакцию
-    created_at:str = "" # Дата и время добавления реакции (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
-    code:str = ""       # Emoji символ реакции
+    user_id:int     # Идентификатор пользователя, который добавил реакцию
+    created_at:str  # Дата и время добавления реакции (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    code:str        # Emoji символ реакции
 
     def __init__(self, json = {}):
+        self.user_id = int()
+        self.created_at = str()
+        self.code = str()
+
         if json:
             self.parse_json(json)
 

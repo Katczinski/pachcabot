@@ -2,24 +2,39 @@ from typing import List
 from customproperty import CustomProperty
 
 class User:
-    id:int = 0                          # Идентификатор пользователя
-    first_name:str = ""                 # Имя
-    last_name:str = ""                  # Фамилия
-    nickname:str = ""                   # Имя пользователя
-    email:str = ""                      # Электронная почта
-    phone_number:str = ""               # Телефон
-    department:str = ""                 # Подразделение
-    role:str = ""                       # Уровень доступа: admin (администратор), user (сотрудник), multi_guest (мульти-гость)
-    suspended:bool = False              # Приостановка доступа
-    invite_status:str = ""              # Статус пришлашения: confirmed (принято), sent (отправлено)
-    list_tags:List[str] = []            # Массив тегов, привязанных к сотруднику
-    custom_properties:List[CustomProperty] # Дополнительные поля сотрудника
-    user_status:object = None           # Статус. Возвращается как null, если статус не установлен.
-    bot:bool = False                    # Тип: пользователь (false) или бот (true)
-    created_at:str = ""                 # Дата создания (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
+    id:int                                  # Идентификатор пользователя
+    first_name:str                          # Имя
+    last_name:str                           # Фамилия
+    nickname:str                            # Имя пользователя
+    email:str                               # Электронная почта
+    phone_number:str                        # Телефон
+    department:str                          # Подразделение
+    role:str                                # Уровень доступа: admin (администратор), user (сотрудник), multi_guest (мульти-гость)
+    suspended:bool                          # Приостановка доступа
+    invite_status:str                       # Статус пришлашения: confirmed (принято), sent (отправлено)
+    list_tags:List[str]                     # Массив тегов, привязанных к сотруднику
+    custom_properties:List[CustomProperty]  # Дополнительные поля сотрудника
+    user_status:object                      # Статус. Возвращается как null, если статус не установлен.
+    bot:bool                                # Тип: пользователь (false) или бот (true)
+    created_at:str                          # Дата создания (ISO-8601, UTC+0) в формате YYYY-MM-DDThh:mm:ss.sssZ
 
     def __init__(self, json = {}):
-        self.custom_properties = []
+        self.id = int()
+        self.first_name = str()
+        self.last_name = str()
+        self.nickname = str()
+        self.email = str()
+        self.phone_number = str()
+        self.department = str()
+        self.role = str()
+        self.suspended = bool()
+        self.invite_status = str()
+        self.list_tags = list[str]()
+        self.custom_properties = list[CustomProperty]()
+        self.user_status = object()
+        self.bot = bool()
+        self.created_at = str()
+    
         if json:
             self.parse_json(json)
         

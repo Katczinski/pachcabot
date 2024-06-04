@@ -2,17 +2,21 @@ from typing import Any
 import json as Json
 
 class CustomProperty:
-    id:int = 0          # Идентификатор поля
-    name:str = ""       # Название поля
-    data_type:str = ""  # Тип поля (string, number, date или link)
-    value:Any ; None
+    id:int          # Идентификатор поля
+    name:str        # Название поля
+    data_type:str   # Тип поля (string, number, date или link)
+    value:Any
 
     def __init__(self, json = {}):
+        self.id = int()
+        self.name = str()
+        self.data_type = str()
+        self.value = None
+
         if json:
             self.from_json(json)
 
     def from_json(self, json):
-        print("from json in cp")
         self.id = json["id"]
         self.name = json["name"]
         self.data_type = json["data_type"]
