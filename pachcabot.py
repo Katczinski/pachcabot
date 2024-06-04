@@ -143,9 +143,9 @@ class PachcaBot:
                     suspended:bool=False,
                     list_tags:List[str]=None,
                     custom_properties:List[CustomProperty]=None,
-                    skip_email_notify:bool=False):
+                    skip_email_notify:bool=False) -> User:
         if list_tags is None:
-            list = []
+            list_tags = []
         if custom_properties is None:
             custom_properties = []
         url = "/users"
@@ -170,6 +170,55 @@ class PachcaBot:
             json["user"]["custom_properties"].append(property.to_json())
 
         user_json = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+
+        if not user_json["data"]:
+            return {}
+        return User(user_json["data"])
+
+    # user_edit:
+    # Arguments:
+    #   user_id             Идентификатор пользователя   
+    #   first_name:	        Новое имя
+    #   last_name:	        Новая фамилия
+    #   nickname:	        Новое им пользователя
+    #   email:		        Новая электронная почта
+    #   phone_number:	    Новый телефон
+    #   department:         Новое подразделение
+    #   role:               Новый уровень доступа: admin (администратор), user (сотрудник), multi_guest (мульти-гость)
+    #   suspended:          Новое значение приостановки доступа
+    #   list_tags:          Новый массив тегов, привязываемых к сотруднику
+    #   custom_properties:  Новые задаваемые дополнительные поля
+    #   skip_email_notify:  Новое значение пропускф этапа отправки приглашения сотруднику (при значении true сотруднику не будет отправлено письмо на электронную почту с приглашением создать аккаунт). Данный параметр полезен в случае предварительного создания аккаунтов сотрудникам перед их входом через SSO.
+    # Return value:
+    #   object user.User:   Отредактированный сотрудник
+    def user_edit(self, user_id:int,
+                    first_name:str=None,
+                    last_name:str=None,
+                    email:str=None,
+                    nickname:str=None,
+                    phone_number:str=None,
+                    department:str=None,
+                    role:str=None,
+                    suspended:bool=None,
+                    list_tags:List[str]=None,
+                    custom_properties:List[CustomProperty]=None,
+                    skip_email_notify:bool=None):
+        args = locals()
+        url = f'/users/{user_id}'
+        json = {
+            "user": {
+            },
+        }
+        for arg in list(args)[2:12]:
+            if args[arg] is not None:
+                json["user"][arg] = Json.loads(Json.dumps(args[arg],
+                                                        default=lambda x: getattr(x, '__dict__', str(x)),
+                                                        sort_keys=False,
+                                                        indent=4))
+        if skip_email_notify is not None:
+            json["skip_email_notify"] = skip_email_notify
+        
+        user_json = pachcarequests.send_put_request(self.API_URL + url, self.headers, json=json)
 
         if not user_json["data"]:
             return {}
