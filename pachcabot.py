@@ -92,7 +92,7 @@ class PachcaBot:
         return properties
 
 
-    # create_new_task:
+    # task_create:
     # Arguments:   
     #   kind:           Тип. call (позвонить контакту), meeting (встреча), reminder (напоминание), event (событие), email (написать письмо)
     #   content:        Описание.
@@ -141,9 +141,13 @@ class PachcaBot:
                     department:str="",
                     role:str="user",
                     suspended:bool=False,
-                    list_tags:List[str]=[],
-                    custom_properties:List[CustomProperty]=[],
+                    list_tags:List[str]=None,
+                    custom_properties:List[CustomProperty]=None,
                     skip_email_notify:bool=False):
+        if list_tags is None:
+            list = []
+        if custom_properties is None:
+            custom_properties = []
         url = "/users"
         json = {
             "user": {
@@ -155,11 +159,13 @@ class PachcaBot:
                 "department": department,
                 "role": role,
                 "suspended": suspended,                
-                "list_tags": list_tags,
+                "list_tags": [],
                 "custom_properties": []
             },
             "skip_email_notify": skip_email_notify
         }
+        for tag in list_tags:
+            json["user"]["list_tags"].append(tag)
         for property in custom_properties:
             json["user"]["custom_properties"].append(property.to_json())
 
@@ -362,7 +368,11 @@ class PachcaBot:
     #   public		    Доступ: закрытый (по умолчанию, false) или открытый (true)
     # Return value:
     #   object chatroom.ChatRoom: Созданная беседа или канал
-    def room_create(self, name, member_ids:List[int]=[], group_tag_ids:List[int]=[], channel:bool=False, public:bool=False) -> ChatRoom:
+    def room_create(self, name, member_ids:List[int]=None, group_tag_ids:List[int]=None, channel:bool=False, public:bool=False) -> ChatRoom:
+        if member_ids is None:
+            member_ids = []
+        if group_tag_ids is None:
+            group_tag_ids = []
         url = f'/chats'
         json = {
             "chat": {
@@ -412,7 +422,9 @@ class PachcaBot:
     #   files:      Прикрепляемые файлы
     # Return value:
     #   object Json: Созданное сообщение в формате Json
-    def message_edit(self, msg_id, content="", files:List[File]=[]) -> Json:
+    def message_edit(self, msg_id, content="", files:List[File]=None) -> Json:
+        if files is None:
+            files = []
         url = f'/messages/{msg_id}'
         json = {
             "message": {
@@ -498,7 +510,9 @@ class PachcaBot:
     #   files:      Прикрепляемые файлы
     # Return value:
     #   object Json: Созданное сообщение в формате Json
-    def message_reply_in_thread(self, msg_id, content="", files:List[File]=[]) -> Json:
+    def message_reply_in_thread(self, msg_id, content="", files:List[File]=None) -> Json:
+        if files is None:
+            files = []
         thread = self.message_create_thread(msg_id)
         url = '/messages'
         json = {
@@ -525,7 +539,9 @@ class PachcaBot:
     #   files:      Прикрепляемые файлы
     # Return value:
     #   object Json: Созданное сообщение в формате Json
-    def message_send_in_room(self, room_id, content="", files:List[File]=[]) -> Json:
+    def message_send_in_room(self, room_id, content="", files:List[File]=None) -> Json:
+        if files is None:
+            files = []
         url = '/messages'
         json = {
             "message": {
