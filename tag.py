@@ -1,3 +1,4 @@
+import json as Json
 
 class Tag:
     id:int              # Идентификатор тега
@@ -10,12 +11,19 @@ class Tag:
         self.users_count = int()
 
         if json:
-            self.parse_json(json)
+            self.from_json(json)
 
-    def parse_json(self, json):
+    def from_json(self, json):
         self.id = json["id"]
         self.name = json["name"]
         self.users_count = json["users_count"]
+
+    def to_json(self):
+        return Json.loads(Json.dumps(
+            self,
+            default=lambda x: getattr(x, '__dict__', str(x)),
+            sort_keys=False,
+            indent=4))
 
     def _is_valid_operand(self, other):
         return (hasattr(other, "id") and
@@ -28,3 +36,6 @@ class Tag:
         return (self.id == other.id and
                 self.name == other.name and
                 self.users_count == other.users_count)
+    
+    def print_info(self, str=""):
+        print(str, self.to_json())

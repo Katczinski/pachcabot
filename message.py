@@ -1,4 +1,5 @@
 from typing import List
+import json as Json
 
 class Message:
     id:int                  # Идентификатор сообщения
@@ -25,9 +26,9 @@ class Message:
         self.parent_message_id = int()
 
         if json:
-            self.parse_json(json)
+            self.from_json(json)
     
-    def parse_json(self, json):
+    def from_json(self, json):
         self.id = json["id"]
         self.entity_type = json["entity_type"]
         self.entity_id = json["entity_id"]
@@ -39,6 +40,13 @@ class Message:
         self.thread = json["thread"]
         self.parent_message_id = json["parent_message_id"]
 
+    def to_json(self):
+        return Json.loads(Json.dumps(
+            self,
+            default=lambda x: getattr(x, '__dict__', str(x)),
+            sort_keys=False,
+            indent=4))
+    
     def _is_valid_operand(self, other):
         return (hasattr(other, "id") and
                 hasattr(other, "entity_type") and
@@ -50,7 +58,7 @@ class Message:
                 hasattr(other, "files") and
                 hasattr(other, "thread") and
                 hasattr(other, "parent_message_id"))
-
+    
     def __eq__(self, other):
         if not self._is_valid_operand(other):
             return NotImplemented
@@ -64,19 +72,8 @@ class Message:
                 self.files == other.files and
                 # self.thread == other.thread and       # could mess up message history when thread added
                 self.parent_message_id == other.parent_message_id)
-
-    def print_info(self):
-        print("=========")
-        print("id", self.id)
-        print("entity_type", self.entity_type)
-        print("entity_id", self.entity_id)
-        print("chat_id", self.chat_id)
-        print("content", self.content)
-        print("user_id", self.user_id)
-        print("created_at", self.created_at)
-        print("files", self.files)
-        print("thread", self.thread)
-        print("parent_message_id", self.parent_message_id)
-        print("=========")
+    
+    def print_info(self, str=""):
+        print(str, self.to_json())
 
 

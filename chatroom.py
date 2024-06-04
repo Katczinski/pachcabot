@@ -1,7 +1,9 @@
 from typing import List
+import json as Json
 import threading 
 
 from message import Message
+
 class ChatRoom:
     id:int                      # Идентификатор беседы или канала
     name:str                    # Название
@@ -29,9 +31,9 @@ class ChatRoom:
         self.mutex = threading.Lock()
 
         if json:
-            self.parse_json(json)
+            self.from_json(json)
     
-    def parse_json(self, json):
+    def from_json(self, json):
         self.id = json["id"]
         self.name = json["name"]
         self.created_at = json["created_at"]
@@ -41,14 +43,13 @@ class ChatRoom:
         self.channel = json["channel"]
         self.public = json["public"]
         self.last_message_at = json["last_message_at"]
-    
-    def print_info(self):
-        print(f'==== {self.name} ====')
-        print("id:", self.id)
-        print("created_at:", self.created_at)
-        print("owner_id:", self.owner_id)
-        print("member_ids:", self.member_ids)
-        print("group_tag_ids:", self.group_tag_ids)
-        print("channel:", self.channel)
-        print("public:", self.public)
-        print("last_message_at:", self.last_message_at)
+
+    def to_json(self):
+        return Json.loads(Json.dumps(
+            self,
+            default=lambda x: getattr(x, '__dict__', str(x)), 
+            sort_keys=False,
+            indent=4))
+
+    def print_info(self, str=""):
+        print(str, self.to_json())

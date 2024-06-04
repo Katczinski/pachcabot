@@ -1,3 +1,4 @@
+import json as Json
 
 class File:
     key:str         # Путь к файлу, полученный в результате загрузки файла (каждый файл в каждом сообщении должен иметь свой уникальный key, не допускается использование одного и того же key в разных сообщениях)
@@ -12,13 +13,20 @@ class File:
         self.size = int()
 
         if json:
-            self.parse_json(json)
+            self.from_json(json)
 
-    def parse_json(self, json):
+    def from_json(self, json):
         self.key = json["key"]
         self.name = json["name"]
         self.file_type = json["file_type"]
         self.size = json["size"]
+
+    def to_json(self):
+        return Json.loads(Json.dumps(
+            self,
+            default=lambda x: getattr(x, '__dict__', str(x)),
+            sort_keys=False,
+            indent=4))
 
     def _is_valid_operand(self, other):
         return (hasattr(other, "key") and
@@ -33,3 +41,6 @@ class File:
                 self.name == other.name and
                 self.file_type == other.file_type and
                 self.size == other.size)
+    
+    def print_info(self, str=""):
+        print(str, self.to_json())

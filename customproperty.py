@@ -25,7 +25,7 @@ class CustomProperty:
     def to_json(self):
         return Json.loads(Json.dumps(
             self,
-            default=lambda o: o.__dict__, 
+            default=lambda x: getattr(x, '__dict__', str(x)),
             sort_keys=False,
             indent=4))
 

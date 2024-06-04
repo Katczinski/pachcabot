@@ -1,4 +1,5 @@
 from typing import List
+import json as Json
 
 class Task:
     id:int	                    # Идентификатор созданной задачи
@@ -23,9 +24,9 @@ class Task:
         self.performer_ids = list[int]()
 
         if json:
-            self.parse_json(json)
+            self.from_json(json)
 
-    def parse_json(self, json):
+    def from_json(self, json):
         self.id = json["id"]
         self.kind = json["kind"]
         self.content = json["content"]
@@ -35,6 +36,13 @@ class Task:
         self.status	= json["status"]
         self.created_at	= json["created_at"]
         self.performer_ids = json["performer_ids"]
+
+    def to_json(self):
+        return Json.loads(Json.dumps(
+            self,
+            default=lambda x: getattr(x, '__dict__', str(x)),
+            sort_keys=False,
+            indent=4))
 
     def _is_valid_operand(self, other):
         return (hasattr(other, "id") and
@@ -59,3 +67,6 @@ class Task:
                 self.status == other.status and
                 self.created_at == other.created_at and
                 self.performer_ids == other.performer_ids)
+        
+    def print_info(self, str=""):
+        print(str, self.to_json())
