@@ -8,6 +8,7 @@ import functools
 import filetype as Filetype
 from typing import List
 from typing import Callable
+from typing import Dict
 from typing import Any
 import json as Json
 
@@ -37,7 +38,6 @@ class TaskHandle:
     def set_thread(self, thread):
         self.thread = thread
 
-
 class PachcaBot:
     AUTH_TOKEN = None
     API_URL = "https://api.pachca.com/api/shared/v1"
@@ -49,6 +49,7 @@ class PachcaBot:
     _sys_tasks:List[TaskHandle] = []
     uploads:List[File] = [] # unused
     message_handler: Callable[[Message], None] = None
+    event_handlers:Dict[str, Callable] = {}
 
     def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
@@ -510,6 +511,16 @@ class PachcaBot:
         self.user_tasks.append(t)
         return t
 
+    def on_message(self, func):
+        @functools.wraps(func)
+        def wrapper(self):
+            msg = self.queue_get()
+            if func and msg:
+                func(msg)
+        self.event_handlers["on_message"] = wrapper
+        return wrapper
+
+
     def install_message_handler(self, func:Callable[[Message], None]):
         self.message_handler = func
 
@@ -583,12 +594,12 @@ class PachcaBot:
 
     def __handle_message(self):
         while True:
-            msg = self.queue_get()
-            if self.message_handler and msg:
-                self.message_handler(msg)
-            elif msg:
-                print(f'message not handled: user[{msg.user_id}] : {msg.content}')
-
+            if "on_message" in self.event_handlers:
+                self.event_handlers["on_message"](self)
+            else:
+                msg = self.queue_get()
+                if msg:
+                    print(f'msg not handled: user[{msg.user_id}]: {msg.content}')
 
     def __task_init_sys(self):
         self.__task_create_sys(self.__scan_rooms, "__sys_scan_rooms")

@@ -41,18 +41,17 @@ def say_happy_birthday(msg):
   bot.message_reply_in_thread(msg.id, "Happy Birthday!!!🎂🎂🎂")
   bot.message_add_reaction(msg.id, '🎂')
 
+bot = pachcabot.PachcaBot(AUTH_TOKEN, cache_size=20)
+
+user = bot.users_get_all(filters="Smith")[0]
+
+@bot.on_message
 def message_handler(msg:Message):
     if msg.user_id == BOT_ID:
         return
     if msg.user_id == user.id and user.id != 0:
         print(f'New message from {user.last_name}: {msg.content}')   
         say_happy_birthday(msg)       
-
-bot = pachcabot.PachcaBot(AUTH_TOKEN, cache_size=20)
-
-user = bot.users_get_all(filters="Smith")[0]
-
-bot.install_message_handler(message_handler)
 
 bot.run()
 ```
