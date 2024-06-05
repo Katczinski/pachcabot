@@ -68,5 +68,11 @@ def message_handler(msg:Message):
         print(f'New message from {birthday_boy.last_name} {birthday_boy.first_name}: {msg.content}')   
         say_happy_birthday(msg)       
 
+@bot.on_ready
+def say_hello():
+    rooms = bot.rooms_get_all()
+    for room in rooms:
+        bot.message_send_in_room(room.id, "I'm alive!")
+
 bot.run()
 ```

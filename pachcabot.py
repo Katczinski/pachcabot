@@ -675,6 +675,13 @@ class PachcaBot:
         })
         return new_file
 
+    def on_ready(self, func):
+        @functools.wraps(func)
+        def wrapper():
+            if func:
+                func()
+        self._event_handlers["on_ready"] = wrapper
+
     def on_message(self, func):
         @functools.wraps(func)
         def wrapper(self):
@@ -788,6 +795,8 @@ class PachcaBot:
     #   None
     def run(self) -> None:
         self.__start_tasks_sys()
+        if "on_ready" in self._event_handlers:
+            self._event_handlers["on_ready"]()
         try:
             while True:
                 # Could do some work here?
