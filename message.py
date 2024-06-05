@@ -21,7 +21,7 @@ class Message:
         self.content = str()
         self.user_id = int()
         self.created_at = str()
-        self.files = list[object]()
+        self.files = []
         self.thread = object()
         self.parent_message_id = int()
 

@@ -30,8 +30,8 @@ class User:
         self.role = str()
         self.suspended = bool()
         self.invite_status = str()
-        self.list_tags = list[str]()
-        self.custom_properties = list[CustomProperty]()
+        self.list_tags = []
+        self.custom_properties = []
         self.user_status = object()
         self.bot = bool()
         self.created_at = str()

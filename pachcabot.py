@@ -1,3 +1,4 @@
+from __future__ import annotations
 import threading 
 import time
 import sys
@@ -58,11 +59,11 @@ class PachcaBot:
     def __init__(self, auth_token, cache_size=0):
         self.AUTH_TOKEN = auth_token
         self.cache_size = cache_size
-        self.my_rooms = list[ChatRoom]()
+        self.my_rooms = []
         self.new_msg_queue = queue.Queue()
-        self._sys_tasks = list[TaskHandle]()
-        self.uploads = list[File]()
-        self.event_handlers = dict[str, Callable]()
+        self._sys_tasks = []
+        self.uploads = []
+        self.event_handlers = {}
         self.headers = {
             'Authorization': f'Bearer {self.AUTH_TOKEN}',
             'Content-Type': 'application/json'

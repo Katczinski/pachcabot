@@ -1,3 +1,4 @@
+from __future__ import annotations
 from typing import List
 import json as Json
 import threading 
@@ -22,12 +23,12 @@ class ChatRoom:
         self.name = str()
         self.owner_id = int()
         self.created_at = str()
-        self.member_ids = list[int]()
-        self.group_tag_ids = list[int]()
+        self.member_ids = []
+        self.group_tag_ids = []
         self.channel = bool()
         self.public = bool()
         self.last_message_at = str()
-        self.messages = list[Message]()
+        self.messages = []
         self.mutex = threading.Lock()
 
         if json:
