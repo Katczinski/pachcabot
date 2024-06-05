@@ -21,7 +21,7 @@ class Task:
         self.user_id = int()
         self.status = str()
         self.created_at = str()
-        self.performer_ids = list[int]()
+        self.performer_ids = []
 
         if json:
             self.from_json(json)
