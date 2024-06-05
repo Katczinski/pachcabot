@@ -56,7 +56,7 @@ def say_happy_birthday(msg):
   bot.message_reply_in_thread(msg.id, "Happy Birthday!!!🎂🎂🎂")
   bot.message_add_reaction(msg.id, '🎂')
 
-bot = pachcabot.PachcaBot(AUTH_TOKEN, cache_size=20)
+bot = pachcabot.Client(AUTH_TOKEN, cache_size=20)
 
 birthday_boy = bot.users_get_all(filters="Smith")[0]
 

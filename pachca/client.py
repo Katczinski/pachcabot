@@ -1,3 +1,4 @@
+from __future__ import annotations
 import threading 
 import time
 import sys
@@ -10,19 +11,8 @@ from typing import (
     List,
     Callable,
     Dict,
-    Any
 )
 import json as Json
-
-import pachcarequests
-from chatroom import ChatRoom
-from message import Message
-from user import User
-from file import File
-from task import Task
-from reaction import Reaction
-from tag import Tag
-from customproperty import CustomProperty
 
 #for debug purposes
 BLACKLISTED_ROOMS = []
@@ -85,7 +75,7 @@ class Client:
     def custom_properties_get(self) -> List[CustomProperty]:
         url = f'/custom_properties?entity_type=User'
 
-        customproperty_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+        customproperty_json = http.requests.send_get_request(self.API_URL + url, self._headers)
 
         if not customproperty_json["data"]:
             return []
@@ -118,7 +108,7 @@ class Client:
                 "performer_ids": performer_ids
             }
         }
-        task_json = pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        task_json = http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
         if not task_json["data"]:
             return {}
         return Task(task_json["data"])
@@ -175,7 +165,7 @@ class Client:
         for property in custom_properties:
             json["user"]["custom_properties"].append(property.to_json())
 
-        user_json = pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        user_json = http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
         if not user_json["data"]:
             return {}
@@ -188,7 +178,7 @@ class Client:
     #   object Json:   При безошибочном выполнении запроса тело ответа отсутствует
     def user_delete(self, user_id:int) -> Json:
         url = f'/users/{user_id}'
-        return pachcarequests.send_delete_request(self.API_URL + url, self._headers)
+        return http.requests.send_delete_request(self.API_URL + url, self._headers)
 
     # user_edit:
     # Arguments:
@@ -233,7 +223,7 @@ class Client:
         if skip_email_notify is not None:
             json["skip_email_notify"] = skip_email_notify
         
-        user_json = pachcarequests.send_put_request(self.API_URL + url, self._headers, json=json)
+        user_json = http.requests.send_put_request(self.API_URL + url, self._headers, json=json)
 
         if not user_json["data"]:
             return {}
@@ -246,7 +236,7 @@ class Client:
     #   object user.User: Пользователь, соответствующий предоставленному идентификатору
     def user_get_info(self, user_id) -> User:
         url = f'/users/{user_id}'
-        user_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+        user_json = http.requests.send_get_request(self.API_URL + url, self._headers)
         if not user_json["data"]:
             return {}
         return User(user_json["data"])
@@ -266,7 +256,7 @@ class Client:
 
         while True:
             url = f'/users?per=50&page={page}{query}'
-            users_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+            users_json = http.requests.send_get_request(self.API_URL + url, self._headers)
             
             if not users_json["data"]:
                 break
@@ -290,7 +280,7 @@ class Client:
 
         while True:
             url = f'/group_tags/{tag_id}/users?per=50&page={page}'
-            users_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+            users_json = http.requests.send_get_request(self.API_URL + url, self._headers)
             
             if not users_json["data"]:
                 break
@@ -314,7 +304,7 @@ class Client:
 
         while True:
             url = f'/group_tags?per=50&page={page}'
-            tags_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+            tags_json = http.requests.send_get_request(self.API_URL + url, self._headers)
             
             if not tags_json["data"]:
                 break
@@ -348,7 +338,7 @@ class Client:
                                                         sort_keys=False,
                                                         indent=4))
         
-        chat_json = pachcarequests.send_put_request(self.API_URL + url, self._headers, json=json)
+        chat_json = http.requests.send_put_request(self.API_URL + url, self._headers, json=json)
 
         if not chat_json["data"]:
             return {}
@@ -364,7 +354,7 @@ class Client:
         msgs = []
         while True:
             url = f'/messages?chat_id={room_id}&per=50&page={page}'
-            messages = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+            messages = http.requests.send_get_request(self.API_URL + url, self._headers)
 
             if not messages["data"]:
                 break
@@ -401,7 +391,7 @@ class Client:
         json = {
             "group_tag_ids": tag_ids
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # room_kick_user_by_tag:
     # Arguments:   
@@ -411,7 +401,7 @@ class Client:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
     def room_kick_users_by_tag(self, room_id:int, tag_id:int) -> Json:
         url = f'/chats/{room_id}/group_tags/{tag_id}'
-        return pachcarequests.send_delete_request(self.API_URL + url, self._headers)
+        return http.requests.send_delete_request(self.API_URL + url, self._headers)
 
     # room_add_user_by_id:
     # Arguments:   
@@ -426,7 +416,7 @@ class Client:
             "member_ids": user_ids,
             "silent": silent
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # room_kick_user_by_id:
     # Arguments:   
@@ -436,7 +426,7 @@ class Client:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
     def room_kick_user_by_id(self, room_id:int, user_id:int) -> Json:
         url = f'/chats/{room_id}/members/{user_id}'
-        return pachcarequests.send_delete_request(self.API_URL + url, self._headers)
+        return http.requests.send_delete_request(self.API_URL + url, self._headers)
 
     # room_get_info:
     # Arguments:   
@@ -445,7 +435,7 @@ class Client:
     #   object chatroom.ChatRoom
     def room_get_info(self, room_id) -> ChatRoom:
         url = f'/chats/{room_id}'
-        room_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+        room_json = http.requests.send_get_request(self.API_URL + url, self._headers)
         if not room_json["data"]:
             return {}
         return ChatRoom(room_json["data"])
@@ -474,7 +464,7 @@ class Client:
                 "public": public
             }
         }
-        response = pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        response = http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
         if not response["data"]:
             return {}
@@ -500,7 +490,7 @@ class Client:
             if room.id == room_id:
                 for user_id in room.member_ids:
                     url = f'/users/{user_id}'
-                    user_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+                    user_json = http.requests.send_get_request(self.API_URL + url, self._headers)
                     if not user_json["data"]:
                         continue
                     users.append(User(user_json["data"]))
@@ -530,7 +520,7 @@ class Client:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return pachcarequests.send_put_request(self.API_URL + url, self._headers, json=json)
+        return http.requests.send_put_request(self.API_URL + url, self._headers, json=json)
 
     # message_get_info:
     # Arguments:
@@ -539,7 +529,7 @@ class Client:
     #   object message.Message: Информация о сообщении
     def message_get_info(self, msg_id) -> Message:
         url = f'/messages/{msg_id}'
-        msg_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+        msg_json = http.requests.send_get_request(self.API_URL + url, self._headers)
         if not msg_json["data"]:
             return {}
         return Message(msg_json["data"])
@@ -552,7 +542,7 @@ class Client:
     def message_get_reactions(self, msg_id) -> List[Reaction]:
         url = f'/messages/{msg_id}/reactions'
         reactions = []
-        reactions_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+        reactions_json = http.requests.send_get_request(self.API_URL + url, self._headers)
         if not reactions_json["data"]:
             return reactions
         for reaction_json in reactions_json["data"]:
@@ -570,7 +560,7 @@ class Client:
         json = {
             "code": emoji
         }
-        return pachcarequests.send_delete_request(self.API_URL + url, self._headers, json=json)
+        return http.requests.send_delete_request(self.API_URL + url, self._headers, json=json)
 
     # message_add_reaction:
     # Arguments:
@@ -583,7 +573,7 @@ class Client:
         json = {
             'code': emoji,
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
     
     # message_create_thread:
     # Arguments:
@@ -592,7 +582,7 @@ class Client:
     #   object Json: Созданный тред в формате Json
     def message_create_thread(self, msg_id) -> Json:
         url = f'/messages/{msg_id}/thread'
-        return pachcarequests.send_post_request(self.API_URL + url, self._headers)["data"]
+        return http.requests.send_post_request(self.API_URL + url, self._headers)["data"]
 
     # message_reply_in_thread:
     # Arguments:
@@ -621,7 +611,7 @@ class Client:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # message_send_in_room:
     # Arguments:
@@ -649,7 +639,7 @@ class Client:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # upload_file:
     # Arguments:
@@ -658,7 +648,7 @@ class Client:
     #   object file.File: Загруженный файл
     def upload_file(self, filename) -> File:
         url = "/uploads"
-        uploads_json = pachcarequests.send_post_request(self.API_URL + url, self._headers)
+        uploads_json = http.requests.send_post_request(self.API_URL + url, self._headers)
         # TODO: Check uploads_json
         direct_url = uploads_json.pop("direct_url")
         try:
@@ -666,7 +656,7 @@ class Client:
         except Exception as e:
             print(e)
             return {}
-        pachcarequests.send_post_request(direct_url, data=uploads_json, files=files)
+        http.requests.send_post_request(direct_url, data=uploads_json, files=files)
         
         filepath = uploads_json["key"].replace("${filename}", os.path.basename(filename))
         new_file = File({
@@ -703,7 +693,7 @@ class Client:
         new_msgs = []
         while not stop:
             url = f'/messages?chat_id={room.id}&per=50&page={page}'
-            messages = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+            messages = http.requests.send_get_request(self.API_URL + url, self._headers)
 
             if not messages["data"]:
                 break
@@ -751,7 +741,7 @@ class Client:
 
     def __chatrooms_init(self):
         url = '/chats'
-        rooms_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
+        rooms_json = http.requests.send_get_request(self.API_URL + url, self._headers)
         if not rooms_json["data"]:
             return
         for room in rooms_json["data"]:
