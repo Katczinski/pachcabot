@@ -1,4 +1,3 @@
-from __future__ import annotations
 import threading 
 import time
 import sys
@@ -43,28 +42,32 @@ class TaskHandle:
 class PachcaBot:
     AUTH_TOKEN:str
     API_URL = "https://api.pachca.com/api/shared/v1"
-    my_rooms:List[ChatRoom]
-    new_msg_queue:queue.Queue
-    headers:object
     cache_size:int
+    refresh_rate:int
+    _my_rooms:List[ChatRoom]
+    _headers:object
     _sys_tasks:List[TaskHandle]
-    uploads:List[File] # unused
-    event_handlers:Dict[str, Callable]
+    _event_handlers:Dict[str, Callable]
+    _new_msg_queue:queue.Queue
 
+    uploads:List[File] # unused
+    
     # init:
     # Arguments:
-    #   cache_size: Размер кэша для массива сообщений каждой комнаты. 0 - Без ограничений
+    #   cache_size:     Размер кэша для массива сообщений каждой комнаты. 0 - Без ограничений
+    #   refresh_rate:   Период обновления новых сообщений в секундах
     # Return value:
     #   None
-    def __init__(self, auth_token, cache_size=0):
+    def __init__(self, auth_token, cache_size=0, refresh_rate=2):
         self.AUTH_TOKEN = auth_token
         self.cache_size = cache_size
-        self.my_rooms = []
-        self.new_msg_queue = queue.Queue()
+        self.refresh_rate = refresh_rate
+        self._my_rooms = []
+        self._new_msg_queue = queue.Queue()
         self._sys_tasks = []
         self.uploads = []
-        self.event_handlers = {}
-        self.headers = {
+        self._event_handlers = {}
+        self._headers = {
             'Authorization': f'Bearer {self.AUTH_TOKEN}',
             'Content-Type': 'application/json'
         }
@@ -73,14 +76,14 @@ class PachcaBot:
         self.__task_init_sys()
 
     # custom_properties_get:
-    # Arguments:   
+    # Arguments:
     #   None
     # Return value:
     #   array of customproperty.CustomProperty: Массив дополнительных полей
     def custom_properties_get(self) -> List[CustomProperty]:
         url = f'/custom_properties?entity_type=User'
 
-        customproperty_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        customproperty_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
 
         if not customproperty_json["data"]:
             return []
@@ -94,7 +97,7 @@ class PachcaBot:
 
 
     # task_create:
-    # Arguments:   
+    # Arguments:
     #   kind:           Тип. call (позвонить контакту), meeting (встреча), reminder (напоминание), event (событие), email (написать письмо)
     #   content:        Описание.
     #   due_at:         Срок выполнения задачи. timezone aware!! e.g. datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=1)
@@ -113,7 +116,7 @@ class PachcaBot:
                 "performer_ids": performer_ids
             }
         }
-        task_json = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        task_json = pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
         if not task_json["data"]:
             return {}
         return Task(task_json["data"])
@@ -170,7 +173,7 @@ class PachcaBot:
         for property in custom_properties:
             json["user"]["custom_properties"].append(property.to_json())
 
-        user_json = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        user_json = pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
 
         if not user_json["data"]:
             return {}
@@ -183,7 +186,7 @@ class PachcaBot:
     #   object Json:   При безошибочном выполнении запроса тело ответа отсутствует
     def user_delete(self, user_id:int) -> Json:
         url = f'/users/{user_id}'
-        return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
+        return pachcarequests.send_delete_request(self.API_URL + url, self._headers)
 
     # user_edit:
     # Arguments:
@@ -228,7 +231,7 @@ class PachcaBot:
         if skip_email_notify is not None:
             json["skip_email_notify"] = skip_email_notify
         
-        user_json = pachcarequests.send_put_request(self.API_URL + url, self.headers, json=json)
+        user_json = pachcarequests.send_put_request(self.API_URL + url, self._headers, json=json)
 
         if not user_json["data"]:
             return {}
@@ -241,7 +244,7 @@ class PachcaBot:
     #   object user.User: Пользователь, соответствующий предоставленному идентификатору
     def user_get_info(self, user_id) -> User:
         url = f'/users/{user_id}'
-        user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        user_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
         if not user_json["data"]:
             return {}
         return User(user_json["data"])
@@ -261,7 +264,7 @@ class PachcaBot:
 
         while True:
             url = f'/users?per=50&page={page}{query}'
-            users_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+            users_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
             
             if not users_json["data"]:
                 break
@@ -285,7 +288,7 @@ class PachcaBot:
 
         while True:
             url = f'/group_tags/{tag_id}/users?per=50&page={page}'
-            users_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+            users_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
             
             if not users_json["data"]:
                 break
@@ -309,7 +312,7 @@ class PachcaBot:
 
         while True:
             url = f'/group_tags?per=50&page={page}'
-            tags_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+            tags_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
             
             if not tags_json["data"]:
                 break
@@ -325,6 +328,8 @@ class PachcaBot:
     # room_edit:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
+    #   name	    Название
+    #   public		Доступ: закрытый (по умолчанию, false) или открытый (true)   
     # Return value:
     #   object chatroom.ChatRoom: Отредактированная беседа
     def room_edit(self, room_id:int, name:str=None, public:bool=None) -> ChatRoom:
@@ -341,7 +346,7 @@ class PachcaBot:
                                                         sort_keys=False,
                                                         indent=4))
         
-        chat_json = pachcarequests.send_put_request(self.API_URL + url, self.headers, json=json)
+        chat_json = pachcarequests.send_put_request(self.API_URL + url, self._headers, json=json)
 
         if not chat_json["data"]:
             return {}
@@ -357,7 +362,7 @@ class PachcaBot:
         msgs = []
         while True:
             url = f'/messages?chat_id={room_id}&per=50&page={page}'
-            messages = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+            messages = pachcarequests.send_get_request(self.API_URL + url, self._headers)
 
             if not messages["data"]:
                 break
@@ -376,7 +381,7 @@ class PachcaBot:
     #   list of message.Message: Массив всех сообщений в беседе, хранящихся в кэше бота
     def room_get_cached_history(self, room_id) -> List[Message]:
         messages = []
-        for room in self.my_rooms:
+        for room in self._my_rooms:
             with room.mutex:
                 if room.id == room_id:
                     messages = room.messages
@@ -394,7 +399,7 @@ class PachcaBot:
         json = {
             "group_tag_ids": tag_ids
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # room_kick_user_by_tag:
     # Arguments:   
@@ -404,7 +409,7 @@ class PachcaBot:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
     def room_kick_users_by_tag(self, room_id:int, tag_id:int) -> Json:
         url = f'/chats/{room_id}/group_tags/{tag_id}'
-        return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
+        return pachcarequests.send_delete_request(self.API_URL + url, self._headers)
 
     # room_add_user_by_id:
     # Arguments:   
@@ -419,7 +424,7 @@ class PachcaBot:
             "member_ids": user_ids,
             "silent": silent
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # room_kick_user_by_id:
     # Arguments:   
@@ -429,7 +434,7 @@ class PachcaBot:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
     def room_kick_user_by_id(self, room_id:int, user_id:int) -> Json:
         url = f'/chats/{room_id}/members/{user_id}'
-        return pachcarequests.send_delete_request(self.API_URL + url, self.headers)
+        return pachcarequests.send_delete_request(self.API_URL + url, self._headers)
 
     # room_get_info:
     # Arguments:   
@@ -438,7 +443,7 @@ class PachcaBot:
     #   object chatroom.ChatRoom
     def room_get_info(self, room_id) -> ChatRoom:
         url = f'/chats/{room_id}'
-        room_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        room_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
         if not room_json["data"]:
             return {}
         return ChatRoom(room_json["data"])
@@ -467,7 +472,7 @@ class PachcaBot:
                 "public": public
             }
         }
-        response = pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        response = pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
 
         if not response["data"]:
             return {}
@@ -480,7 +485,7 @@ class PachcaBot:
     # Return value:
     #   list of chatroom.ChatRoom: Каналы, к которым подключен бот
     def rooms_get_all(self) -> List[ChatRoom]:
-        return self.my_rooms
+        return self._my_rooms
 
     # room_get_users:
     # Arguments:   
@@ -489,11 +494,11 @@ class PachcaBot:
     #   list of user.User: Пользователи, состоящие в беседе
     def room_get_users(self, room_id) -> List[User]:
         users = []
-        for room in self.my_rooms:
+        for room in self._my_rooms:
             if room.id == room_id:
                 for user_id in room.member_ids:
                     url = f'/users/{user_id}'
-                    user_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+                    user_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
                     if not user_json["data"]:
                         continue
                     users.append(User(user_json["data"]))
@@ -523,7 +528,7 @@ class PachcaBot:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return pachcarequests.send_put_request(self.API_URL + url, self.headers, json=json)
+        return pachcarequests.send_put_request(self.API_URL + url, self._headers, json=json)
 
     # message_get_info:
     # Arguments:
@@ -532,7 +537,7 @@ class PachcaBot:
     #   object message.Message: Информация о сообщении
     def message_get_info(self, msg_id) -> Message:
         url = f'/messages/{msg_id}'
-        msg_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        msg_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
         if not msg_json["data"]:
             return {}
         return Message(msg_json["data"])
@@ -545,7 +550,7 @@ class PachcaBot:
     def message_get_reactions(self, msg_id) -> List[Reaction]:
         url = f'/messages/{msg_id}/reactions'
         reactions = []
-        reactions_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        reactions_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
         if not reactions_json["data"]:
             return reactions
         for reaction_json in reactions_json["data"]:
@@ -563,7 +568,7 @@ class PachcaBot:
         json = {
             "code": emoji
         }
-        return pachcarequests.send_delete_request(self.API_URL + url, self.headers, json=json)
+        return pachcarequests.send_delete_request(self.API_URL + url, self._headers, json=json)
 
     # message_add_reaction:
     # Arguments:
@@ -576,7 +581,7 @@ class PachcaBot:
         json = {
             'code': emoji,
         }
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
     
     # message_create_thread:
     # Arguments:
@@ -585,7 +590,7 @@ class PachcaBot:
     #   object Json: Созданный тред в формате Json
     def message_create_thread(self, msg_id) -> Json:
         url = f'/messages/{msg_id}/thread'
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers)["data"]
+        return pachcarequests.send_post_request(self.API_URL + url, self._headers)["data"]
 
     # message_reply_in_thread:
     # Arguments:
@@ -614,7 +619,7 @@ class PachcaBot:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # message_send_in_room:
     # Arguments:
@@ -642,7 +647,7 @@ class PachcaBot:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return pachcarequests.send_post_request(self.API_URL + url, self.headers, json=json)
+        return pachcarequests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # upload_file:
     # Arguments:
@@ -651,7 +656,7 @@ class PachcaBot:
     #   object file.File: Загруженный файл
     def upload_file(self, filename) -> File:
         url = "/uploads"
-        uploads_json = pachcarequests.send_post_request(self.API_URL + url, self.headers)
+        uploads_json = pachcarequests.send_post_request(self.API_URL + url, self._headers)
         # TODO: Check uploads_json
         direct_url = uploads_json.pop("direct_url")
         try:
@@ -676,11 +681,11 @@ class PachcaBot:
             msg = self.__queue_get()
             if func and msg:
                 func(msg)
-        self.event_handlers["on_message"] = wrapper
+        self._event_handlers["on_message"] = wrapper
         return wrapper
 
     def __queue_get(self) -> Message:
-        return self.new_msg_queue.get()
+        return self._new_msg_queue.get()
 
     def __update_msg_box(self, room):
         page = 1
@@ -689,7 +694,7 @@ class PachcaBot:
         new_msgs = []
         while not stop:
             url = f'/messages?chat_id={room.id}&per=50&page={page}'
-            messages = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+            messages = pachcarequests.send_get_request(self.API_URL + url, self._headers)
 
             if not messages["data"]:
                 break
@@ -726,18 +731,18 @@ class PachcaBot:
             if last_msg_time != updated_msg_time:
                 new_msgs = self.__update_msg_box(room)
                 for msg in reversed(new_msgs):
-                    self.new_msg_queue.put(msg)
-                room.last_message_at = updated_room.last_message_at
+                    self._new_msg_queue.put(msg)
+            room.update(updated_room)
 
     def __scan_rooms(self):
         while True:
-            for room in self.my_rooms:
+            for room in self._my_rooms:
                     self.__room_routine(room)
-            time.sleep(2)
+            time.sleep(self.refresh_rate)
 
     def __chatrooms_init(self):
         url = '/chats'
-        rooms_json = pachcarequests.send_get_request(self.API_URL + url, self.headers)
+        rooms_json = pachcarequests.send_get_request(self.API_URL + url, self._headers)
         if not rooms_json["data"]:
             return
         for room in rooms_json["data"]:
@@ -746,7 +751,7 @@ class PachcaBot:
                 continue
             new_room = ChatRoom(room)
             new_room.print_info()
-            self.my_rooms.append(new_room)
+            self._my_rooms.append(new_room)
             self.__update_msg_box(new_room)
             print("=================")
             print(f'room {new_room.name} inited. Message count: {len(new_room.messages)}')
@@ -754,8 +759,8 @@ class PachcaBot:
 
     def __handle_message(self):
         while True:
-            if "on_message" in self.event_handlers:
-                self.event_handlers["on_message"](self)
+            if "on_message" in self._event_handlers:
+                self._event_handlers["on_message"](self)
             else:
                 msg = self.__queue_get()
                 if msg:

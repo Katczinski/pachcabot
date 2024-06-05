@@ -1,4 +1,3 @@
-from __future__ import annotations
 from typing import List
 import json as Json
 import threading 
@@ -45,6 +44,19 @@ class ChatRoom:
         self.public = json["public"]
         self.last_message_at = json["last_message_at"]
 
+    # update mutable room info
+    def update(self, other) -> bool:
+        if self.id == other.id:
+            self.name = other.name
+            self.member_ids = other.member_ids
+            self.group_tag_ids = other.group_tag_ids
+            self.channel = other.channel
+            self.public = other.public
+            self.last_message_at = other.last_message_at
+            return True
+        return False
+    
+    #TODO add custom lambda to not dump all the messages ?
     def to_json(self):
         return Json.loads(Json.dumps(
             self,
