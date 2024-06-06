@@ -53,6 +53,9 @@ AUTH_TOKEN = YOUR_API_TOKEN_GOES_HERE       # string  # required!
 TARGET_CHAT = GROUP_ENTITY_ID_GOES_HERE     # integer # for the sake of example
 BOT_ID = BOT_USER_ID_GOES_HERE              # integer # for the sake of example
 
+HOST = "localhost"
+PORT = 5000
+
 def say_happy_birthday(msg):
   bot.message_reply_in_thread(msg.id, "Happy Birthday!!!🎂🎂🎂")
   bot.message_add_reaction(msg.id, '🎂')
@@ -97,5 +100,5 @@ def say_hello():
     for room in rooms:
         bot.message_send_in_room(room.id, "I'm alive!")
 
-bot.run()    
+bot.run(HOST, PORT)    
 ```
