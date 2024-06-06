@@ -17,8 +17,8 @@ class Reaction:
 
     def from_json(self, json):
         self.user_id = json["user_id"]
-        self.created_at = json["created_at"]
         self.code = json["code"]
+        if "created_at" in json: self.created_at = json["created_at"]
         if "message_id" in json: self.message_id = json["message_id"]
 
     def to_json(self):

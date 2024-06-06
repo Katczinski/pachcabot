@@ -35,9 +35,9 @@ class Message:
         self.chat_id = json["chat_id"]
         self.content = json["content"]
         self.user_id = json["user_id"]
-        self.created_at = json["created_at"]
-        self.thread = json["thread"]
+        self.thread = json["thread"] 
         if "files" in json: self.files = json["files"]
+        if "created_at" in json: self.created_at = json["created_at"]
         if "parent_message_id" in json: self.parent_message_id = json["parent_message_id"]
         
         
@@ -64,16 +64,16 @@ class Message:
     def __eq__(self, other):
         if not self._is_valid_operand(other):
             return NotImplemented
-        return (self.id == other.id and
-                self.entity_type == other.entity_type and
-                self.entity_id == other.entity_id and
-                self.chat_id == other.chat_id and
-                self.content == other.content and
-                self.user_id == other.user_id and
-                self.created_at == other.created_at and
-                self.files == other.files and
-                # self.thread == other.thread and       # could mess up message history when thread added
-                self.parent_message_id == other.parent_message_id)
+        return (self.id == other.id and                     #   +
+                self.entity_type == other.entity_type and   #   +
+                self.entity_id == other.entity_id and       #   +
+                self.chat_id == other.chat_id and           #   +
+                self.content == other.content and           #
+                self.user_id == other.user_id and           #   +
+                self.created_at == other.created_at)        #   +
+                # self.files == other.files and             #         # messages to be deleted do not have this field
+                # self.thread == other.thread and           #         # could mess up message history when thread added // TODO: Check this again
+                # self.parent_message_id == other.parent_message_id)  # messages to be deleted do not have this field
     
     def print_info(self, str=""):
         print(str, self.to_json())

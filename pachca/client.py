@@ -38,28 +38,23 @@ class TaskHandle:
 class Client:
     AUTH_TOKEN:str
     API_URL = "https://api.pachca.com/api/shared/v1"
-    cache_size:int
-    refresh_rate:int
     _my_rooms:List[types.ChatRoom]
     _headers:object
     _sys_tasks:List[TaskHandle]
     _event_handlers:Dict[str, Callable]
-    _new_msg_queue:queue.Queue
+    _events_queue:queue.Queue
 
     uploads:List[types.File] # unused
     
     # init:
     # Arguments:
-    #   cache_size:     Размер кэша для массива сообщений каждой комнаты. 0 - Без ограничений
-    #   refresh_rate:   Период обновления новых сообщений в секундах
+    #   auth_token: Pachca access_token
     # Return value:
     #   None
-    def __init__(self, auth_token, cache_size=0, refresh_rate=2):
+    def __init__(self, auth_token):
         self.AUTH_TOKEN = auth_token
-        self.cache_size = cache_size
-        self.refresh_rate = refresh_rate
         self._my_rooms = []
-        self._new_msg_queue = queue.Queue()
+        self._events_queue = queue.Queue()
         self._sys_tasks = []
         self.uploads = []
         self._event_handlers = {}
@@ -678,70 +673,40 @@ class Client:
                 func()
         self._event_handlers["on_ready"] = wrapper
 
+    def on_message_delete(self, func):
+        @functools.wraps(func)
+        def wrapper(msg:types.Message):
+            func(msg)
+        self._event_handlers["on_message_delete"] = wrapper
+        return wrapper
+
+    def on_message_edit(self, func):
+        @functools.wraps(func)
+        def wrapper(msg:types.Message):
+            func(msg)
+        self._event_handlers["on_message_edit"] = wrapper
+        return wrapper
+
     def on_message(self, func):
         @functools.wraps(func)
-        def wrapper(self):
-            msg = self.__queue_get()
-            if func and msg:
-                func(msg)
+        def wrapper(msg:types.Message):
+            func(msg)
         self._event_handlers["on_message"] = wrapper
         return wrapper
 
-    def __queue_get(self) -> types.Message:
-        return self._new_msg_queue.get()
+    def on_reaction_add(self, func):
+        @functools.wraps(func)
+        def wrapper(react:types.Reaction):
+            func(react)
+        self._event_handlers["on_reaction_add"] = wrapper
+        return wrapper
 
-    def __update_msg_box(self, room):
-        page = 1
-        cache_count = 0
-        stop = False
-        new_msgs = []
-        while not stop:
-            url = f'/messages?chat_id={room.id}&per=50&page={page}'
-            messages = requests.send_get_request(self.API_URL + url, self._headers)
-
-            if not messages["data"]:
-                break
-            
-            for json in messages["data"]:
-                msg = types.Message(json)
-                if msg not in room.messages:
-                    new_msgs.append(msg)
-                    cache_count += 1
-                else:   # message already in cache
-                    stop = True
-                    break
-                if self.cache_size > 0 and cache_count >= self.cache_size:
-                    stop = True
-                    break
-                    
-            page += 1
-        for new_msg in reversed(new_msgs):
-            room.messages.append(new_msg)
-        if self.cache_size > 0:
-            del room.messages[:len(room.messages) - self.cache_size]
-        return new_msgs
-
-    def __room_routine(self, room):
-        with room.mutex:
-            try:
-                updated_room = self.room_get_info(room.id)
-            except Exception as e:
-                print(e)
-                return
-            last_msg_time = room.last_message_at
-            updated_msg_time = updated_room.last_message_at
-
-            if last_msg_time != updated_msg_time:
-                new_msgs = self.__update_msg_box(room)
-                for msg in reversed(new_msgs):
-                    self._new_msg_queue.put(msg)
-            room.update(updated_room)
-
-    def __scan_rooms(self):
-        while True:
-            for room in self._my_rooms:
-                    self.__room_routine(room)
-            time.sleep(self.refresh_rate)
+    def on_reaction_remove(self, func):
+        @functools.wraps(func)
+        def wrapper(react:types.Reaction):
+            func(react)
+        self._event_handlers["on_reaction_remove"] = wrapper
+        return wrapper
 
     def __chatrooms_init(self):
         url = '/chats'
@@ -755,52 +720,54 @@ class Client:
             new_room = types.ChatRoom(room)
             new_room.print_info()
             self._my_rooms.append(new_room)
-            self.__update_msg_box(new_room)
+            # self.__update_msg_box(new_room)
             print("=================")
-            print(f'room {new_room.name} inited. Message count: {len(new_room.messages)}')
+            print(f'room {new_room.name} inited.')
             print("=================")
-
-    def __handle_message(self):
+    
+    def __handle_events(self):
         while True:
-            if "on_message" in self._event_handlers:
-                self._event_handlers["on_message"](self)
-            else:
-                msg = self.__queue_get()
-                if msg:
-                    print(f'msg not handled: user[{msg.user_id}]: {msg.content}')
+            tuple = self._events_queue.get()
+            if not tuple or len(tuple) != 2:
+                continue
+            e = tuple[0]
+            payload = tuple[1]
+            if e and e.event == "new":
+                if e.type == "message" and "on_message" in self._event_handlers:
+                    self._event_handlers["on_message"](payload)
+                elif e.type == "reaction" and "on_reaction_add" in self._event_handlers:
+                    self._event_handlers["on_reaction_add"](payload)
+            elif e and e.event == "delete":
+                if e.type == "message" and "on_message_delete" in self._event_handlers:
+                    self._event_handlers["on_message_delete"](payload)
+                elif e.type == "reaction" and "on_reaction_remove" in self._event_handlers:
+                    self._event_handlers["on_reaction_remove"](payload)
+            elif e.event == "update":
+                if e.type == "message"and "on_message_edit" in self._event_handlers:
+                    self._event_handlers["on_message_edit"](payload)
 
-        # HOST = '127.0.0.1'
-        # PORT = 5000
-        # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        #     s.bind((HOST, PORT))
-        #     s.listen(1)
-        #     conn, addr = s.accept()
-        #     with conn:
-        #         print('Connected by', addr)
-        #         while True:
-        #             data = conn.recv(1024)
+                
     def __event_listener(self, data):
-
-        if data:
-            r = requests.parser.RequestParser(data)
-            print(r.data)
-            # json_req = Json.loads(r.data[0])
-            # print(json_req)
-            # if "type" in json_req and "event" in json_req:
-            #     if json_req["type"] == "message":
-            #         msg = types.Message(json_req)
-            #         self._new_msg_queue.put(msg)
-            #     elif json_req["type"] == "reaction":
-            #         react = types.Reaction(json_req)
-            #         print(f'react {react.code} added to message {react.message_id}')
+        if not data:
+            return
+        json_req = Json.loads(data)
+        if "type" in json_req and "event" in json_req:
+            print("Raw req:", json_req)
+            e = types.Event(type=json_req["type"], event=json_req["event"])
+            # print(f'event {e.event} type {e.type}')
+            payload = None
+            if e.type == "reaction":
+                payload = types.Reaction(json_req)
+            elif e.type == "message":
+                payload = types.Message(json_req)
+            self._events_queue.put((e, payload))
                             
     def __http_server(self):
-        http.run(addr="127.0.0.1", port=5000, callback=self.__event_listener)
+        http.run(addr=self.host, port=self.port, callback=self.__event_listener) # should not return
+        print("http server went down")
 
     def __task_init_sys(self):
-        # self.__task_create_sys(self.__scan_rooms, "__sys_scan_rooms")
-        self.__task_create_sys(self.__handle_message, "__sys_handle_message")
-        # self.__task_create_sys(self.__event_listener, "__sys_event_listener")
+        self.__task_create_sys(self.__handle_events, "__sys_handle_events")
         self.__task_create_sys(self.__http_server, "__sys_http_server")
 
     def __task_create_sys(self, task_function, task_name):
@@ -819,7 +786,9 @@ class Client:
     #   None
     # Return value:
     #   None
-    def run(self) -> None:
+    def run(self, host:str, port:int) -> None:
+        self.host = host
+        self.port = port
         self.__start_tasks_sys()
         if "on_ready" in self._event_handlers:
             self._event_handlers["on_ready"]()

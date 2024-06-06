@@ -37,7 +37,7 @@ class S(BaseHTTPRequestHandler):
         self.wfile.write(self._html("POST!"))
 
 
-def run(server_class=HTTPServer, handler_class=S, callback:Callable=print, addr="127.0.0.1", port=5000):
+def run(callback:Callable, addr:str, port:int, server_class=HTTPServer, handler_class=S):
     server_address = (addr, port)
     my_handler = partial(S, callback)
     httpd = server_class(server_address, my_handler)
