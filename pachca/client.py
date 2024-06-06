@@ -783,7 +783,8 @@ class Client:
 
     # run
     # Arguments:
-    #   None
+    #   host:       host to listen
+    #   port:       port to listen
     # Return value:
     #   None
     def run(self, host:str, port:int) -> None:
