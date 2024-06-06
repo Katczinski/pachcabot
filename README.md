@@ -47,6 +47,7 @@ Example main.py:
 ```
 import pachca
 from pachca.types import Message
+from pachca.types import Reaction
 
 AUTH_TOKEN = YOUR_API_TOKEN_GOES_HERE       # string  # required!
 TARGET_CHAT = GROUP_ENTITY_ID_GOES_HERE     # integer # for the sake of example
@@ -67,6 +68,28 @@ def message_handler(msg:Message):
     if birthday_boy and msg.user_id == birthday_boy.id:
         print(f'New message from {birthday_boy.last_name} {birthday_boy.first_name}: {msg.content}')   
         say_happy_birthday(msg)       
+
+@bot.on_message_delete
+def message_handler(msg:Message):
+    user = bot.user_get_info(msg.user_id)
+    print(f'{user.first_name} {user.last_name} deleted message {msg.content}')
+
+@bot.on_message_edit
+def message_handler(msg:Message):
+    user = bot.user_get_info(msg.user_id)
+    print(f'{user.first_name} {user.last_name} edited message {msg.content}')
+
+@bot.on_reaction_remove
+def message_handler(react:Reaction):
+    msg = bot.message_get_info(react.message_id)
+    user = bot.user_get_info(react.user_id)
+    print(f'Reaction {react.code} removed by {user.first_name} {user.last_name} from the message {msg.content}')
+
+@bot.on_reaction_add
+def message_handler(react:Reaction):
+    msg = bot.message_get_info(react.message_id)
+    user = bot.user_get_info(react.user_id)
+    print(f'Reaction {react.code} added by {user.first_name} {user.last_name} to the message {msg.content}')
 
 @bot.on_ready
 def say_hello():
