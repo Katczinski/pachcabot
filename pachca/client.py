@@ -1,5 +1,6 @@
 import threading 
 import time
+import socket
 import sys
 import os
 import queue
@@ -15,6 +16,7 @@ import json as Json
 
 from . import types
 from . import requests
+from . import http
 
 #for debug purposes
 BLACKLISTED_ROOMS = []
@@ -767,9 +769,39 @@ class Client:
                 if msg:
                     print(f'msg not handled: user[{msg.user_id}]: {msg.content}')
 
+        # HOST = '127.0.0.1'
+        # PORT = 5000
+        # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        #     s.bind((HOST, PORT))
+        #     s.listen(1)
+        #     conn, addr = s.accept()
+        #     with conn:
+        #         print('Connected by', addr)
+        #         while True:
+        #             data = conn.recv(1024)
+    def __event_listener(self, data):
+
+        if data:
+            r = requests.parser.RequestParser(data)
+            print(r.data)
+            # json_req = Json.loads(r.data[0])
+            # print(json_req)
+            # if "type" in json_req and "event" in json_req:
+            #     if json_req["type"] == "message":
+            #         msg = types.Message(json_req)
+            #         self._new_msg_queue.put(msg)
+            #     elif json_req["type"] == "reaction":
+            #         react = types.Reaction(json_req)
+            #         print(f'react {react.code} added to message {react.message_id}')
+                            
+    def __http_server(self):
+        http.run(addr="127.0.0.1", port=5000, callback=self.__event_listener)
+
     def __task_init_sys(self):
-        self.__task_create_sys(self.__scan_rooms, "__sys_scan_rooms")
+        # self.__task_create_sys(self.__scan_rooms, "__sys_scan_rooms")
         self.__task_create_sys(self.__handle_message, "__sys_handle_message")
+        # self.__task_create_sys(self.__event_listener, "__sys_event_listener")
+        self.__task_create_sys(self.__http_server, "__sys_http_server")
 
     def __task_create_sys(self, task_function, task_name):
         t = TaskHandle()

@@ -36,9 +36,11 @@ class Message:
         self.content = json["content"]
         self.user_id = json["user_id"]
         self.created_at = json["created_at"]
-        self.files = json["files"]
         self.thread = json["thread"]
-        self.parent_message_id = json["parent_message_id"]
+        if "files" in json: self.files = json["files"]
+        if "parent_message_id" in json: self.parent_message_id = json["parent_message_id"]
+        
+        
 
     def to_json(self):
         return Json.loads(Json.dumps(
