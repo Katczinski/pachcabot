@@ -2,7 +2,7 @@ from typing import List
 import json as Json
 import threading 
 
-from message import Message
+from .message import Message
 
 class ChatRoom:
     id:int                      # Идентификатор беседы или канала

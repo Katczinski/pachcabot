@@ -1,5 +1,5 @@
 from typing import List
-from customproperty import CustomProperty
+from .customproperty import CustomProperty
 import json as Json
 
 class User:

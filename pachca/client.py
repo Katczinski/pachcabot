@@ -1,4 +1,3 @@
-from __future__ import annotations
 import threading 
 import time
 import sys
@@ -13,6 +12,9 @@ from typing import (
     Dict,
 )
 import json as Json
+
+from . import types
+from . import requests
 
 #for debug purposes
 BLACKLISTED_ROOMS = []
@@ -36,13 +38,13 @@ class Client:
     API_URL = "https://api.pachca.com/api/shared/v1"
     cache_size:int
     refresh_rate:int
-    _my_rooms:List[ChatRoom]
+    _my_rooms:List[types.ChatRoom]
     _headers:object
     _sys_tasks:List[TaskHandle]
     _event_handlers:Dict[str, Callable]
     _new_msg_queue:queue.Queue
 
-    uploads:List[File] # unused
+    uploads:List[types.File] # unused
     
     # init:
     # Arguments:
@@ -72,17 +74,17 @@ class Client:
     #   None
     # Return value:
     #   array of customproperty.CustomProperty: Массив дополнительных полей
-    def custom_properties_get(self) -> List[CustomProperty]:
-        url = f'/custom_properties?entity_type=User'
+    def custom_properties_get(self) -> List[types.CustomProperty]:
+        url = f'/custom_properties?entity_type=user'
 
-        customproperty_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+        customproperty_json = requests.send_get_request(self.API_URL + url, self._headers)
 
         if not customproperty_json["data"]:
             return []
         
         properties = []
         for property_json in customproperty_json["data"]:
-            property = CustomProperty(property_json)
+            property = types.CustomProperty(property_json)
             properties.append(property)
 
         return properties
@@ -97,7 +99,7 @@ class Client:
     #   performer_ids:  Массив идентификаторов пользователей, привязываемых к задаче как «ответственные»
     # Return value:
     #   object task.Task 
-    def task_create(self, kind, content, due_at:datetime.datetime, priority, performer_ids:List[int]) -> Task:
+    def task_create(self, kind, content, due_at:datetime.datetime, priority, performer_ids:List[int]) -> types.Task:
         url = f'/tasks'
         json = {
             "task": {
@@ -108,10 +110,10 @@ class Client:
                 "performer_ids": performer_ids
             }
         }
-        task_json = http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        task_json = requests.send_post_request(self.API_URL + url, self._headers, json=json)
         if not task_json["data"]:
             return {}
-        return Task(task_json["data"])
+        return types.Task(task_json["data"])
 
     # user_create:
     # Arguments:   
@@ -127,7 +129,7 @@ class Client:
     #   custom_properties:  Задаваемые дополнительные поля
     #   skip_email_notify:  Пропуск этапа отправки приглашения сотруднику (при значении true сотруднику не будет отправлено письмо на электронную почту с приглашением создать аккаунт). Данный параметр полезен в случае предварительного создания аккаунтов сотрудникам перед их входом через SSO.
     # Return value:
-    #   object user.User: Созданный сотрудник
+    #   object types.User: Созданный сотрудник
     def user_create(self,
                     first_name:str,
                     last_name:str,
@@ -138,8 +140,8 @@ class Client:
                     role:str="user",
                     suspended:bool=False,
                     list_tags:List[str]=None,
-                    custom_properties:List[CustomProperty]=None,
-                    skip_email_notify:bool=False) -> User:
+                    custom_properties:List[types.CustomProperty]=None,
+                    skip_email_notify:bool=False) -> types.User:
         if list_tags is None:
             list_tags = []
         if custom_properties is None:
@@ -165,11 +167,11 @@ class Client:
         for property in custom_properties:
             json["user"]["custom_properties"].append(property.to_json())
 
-        user_json = http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        user_json = requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
         if not user_json["data"]:
             return {}
-        return User(user_json["data"])
+        return types.User(user_json["data"])
 
     # user_delete:
     # Arguments:
@@ -178,7 +180,7 @@ class Client:
     #   object Json:   При безошибочном выполнении запроса тело ответа отсутствует
     def user_delete(self, user_id:int) -> Json:
         url = f'/users/{user_id}'
-        return http.requests.send_delete_request(self.API_URL + url, self._headers)
+        return requests.send_delete_request(self.API_URL + url, self._headers)
 
     # user_edit:
     # Arguments:
@@ -195,7 +197,7 @@ class Client:
     #   custom_properties:  Новые задаваемые дополнительные поля
     #   skip_email_notify:  Новое значение пропускф этапа отправки приглашения сотруднику (при значении true сотруднику не будет отправлено письмо на электронную почту с приглашением создать аккаунт). Данный параметр полезен в случае предварительного создания аккаунтов сотрудникам перед их входом через SSO.
     # Return value:
-    #   object user.User:   Отредактированный сотрудник
+    #   object types.User:   Отредактированный сотрудник
     def user_edit(self, user_id:int,
                     first_name:str=None,
                     last_name:str=None,
@@ -206,8 +208,8 @@ class Client:
                     role:str=None,
                     suspended:bool=None,
                     list_tags:List[str]=None,
-                    custom_properties:List[CustomProperty]=None,
-                    skip_email_notify:bool=None) -> User:
+                    custom_properties:List[types.CustomProperty]=None,
+                    skip_email_notify:bool=None) -> types.User:
         args = locals()
         url = f'/users/{user_id}'
         json = {
@@ -223,30 +225,30 @@ class Client:
         if skip_email_notify is not None:
             json["skip_email_notify"] = skip_email_notify
         
-        user_json = http.requests.send_put_request(self.API_URL + url, self._headers, json=json)
+        user_json = requests.send_put_request(self.API_URL + url, self._headers, json=json)
 
         if not user_json["data"]:
             return {}
-        return User(user_json["data"])
+        return types.User(user_json["data"])
 
     # user_get_info:
     # Arguments:   
     #   user_id:    Идентификатор пользователя
     # Return value:
-    #   object user.User: Пользователь, соответствующий предоставленному идентификатору
-    def user_get_info(self, user_id) -> User:
+    #   object types.User: Пользователь, соответствующий предоставленному идентификатору
+    def user_get_info(self, user_id) -> types.User:
         url = f'/users/{user_id}'
-        user_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+        user_json = requests.send_get_request(self.API_URL + url, self._headers)
         if not user_json["data"]:
             return {}
-        return User(user_json["data"])
+        return types.User(user_json["data"])
     
     # users_get_all:
     # Arguments:   
     #   filters:    Поисковая фраза для фильтрации результатов (поиск идет по полям first_name (имя), last_name (фамилия), email (электронная почта), phone_number (телефон) и nickname (никнейм))
     # Return value:
-    #   list of user.User: Массив списка сотрудников
-    def users_get_all(self, filters="") -> List[User]:
+    #   list of types.User: Массив списка сотрудников
+    def users_get_all(self, filters="") -> List[types.User]:
         page = 1
         users = []
         if filters:
@@ -256,13 +258,13 @@ class Client:
 
         while True:
             url = f'/users?per=50&page={page}{query}'
-            users_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+            users_json = requests.send_get_request(self.API_URL + url, self._headers)
             
             if not users_json["data"]:
                 break
             
             for json in users_json["data"]:
-                user = User(json)
+                user = types.User(json)
                 users.append(user)
 
             page += 1
@@ -273,20 +275,20 @@ class Client:
     # Arguments:   
     #   tag_id:     Идентификатор тега
     # Return value:
-    #   list of user.User: Массив списка сотрудников тега
-    def users_get_by_tag(self, tag_id:int) -> List[User]:
+    #   list of types.User: Массив списка сотрудников тега
+    def users_get_by_tag(self, tag_id:int) -> List[types.User]:
         page = 1
         users = []
 
         while True:
             url = f'/group_tags/{tag_id}/users?per=50&page={page}'
-            users_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+            users_json = requests.send_get_request(self.API_URL + url, self._headers)
             
             if not users_json["data"]:
                 break
             
             for json in users_json["data"]:
-                user = User(json)
+                user = types.User(json)
                 users.append(user)
 
             page += 1
@@ -298,19 +300,19 @@ class Client:
     #   None
     # Return value:
     #   list of tag.Tag: Массив списка тегов
-    def tags_get_all(self) -> List[Tag]:
+    def tags_get_all(self) -> List[types.Tag]:
         page = 1
         tags = []
 
         while True:
             url = f'/group_tags?per=50&page={page}'
-            tags_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+            tags_json = requests.send_get_request(self.API_URL + url, self._headers)
             
             if not tags_json["data"]:
                 break
             
             for json in tags_json["data"]:
-                tag = Tag(json)
+                tag = types.Tag(json)
                 tags.append(tag)
 
             page += 1
@@ -324,7 +326,7 @@ class Client:
     #   public		Доступ: закрытый (по умолчанию, false) или открытый (true)   
     # Return value:
     #   object chatroom.ChatRoom: Отредактированная беседа
-    def room_edit(self, room_id:int, name:str=None, public:bool=None) -> ChatRoom:
+    def room_edit(self, room_id:int, name:str=None, public:bool=None) -> types.ChatRoom:
         args = locals()
         url = f'/chats/{room_id}'
         json = {
@@ -338,29 +340,29 @@ class Client:
                                                         sort_keys=False,
                                                         indent=4))
         
-        chat_json = http.requests.send_put_request(self.API_URL + url, self._headers, json=json)
+        chat_json = requests.send_put_request(self.API_URL + url, self._headers, json=json)
 
         if not chat_json["data"]:
             return {}
-        return ChatRoom(chat_json["data"])
+        return types.ChatRoom(chat_json["data"])
 
     # room_get_chat_history:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     # Return value:
     #   list of message.Message: Массив всех сообщений в беседе
-    def room_get_chat_history(self, room_id) -> List[Message]:
+    def room_get_chat_history(self, room_id) -> List[types.Message]:
         page = 1
         msgs = []
         while True:
             url = f'/messages?chat_id={room_id}&per=50&page={page}'
-            messages = http.requests.send_get_request(self.API_URL + url, self._headers)
+            messages = requests.send_get_request(self.API_URL + url, self._headers)
 
             if not messages["data"]:
                 break
             
             for json in messages["data"]:
-                msg = Message(json)
+                msg = types.Message(json)
                 msgs.append(msg)
                     
             page += 1
@@ -371,7 +373,7 @@ class Client:
     #   room_id:    Идентификатор беседы или канала
     # Return value:
     #   list of message.Message: Массив всех сообщений в беседе, хранящихся в кэше бота
-    def room_get_cached_history(self, room_id) -> List[Message]:
+    def room_get_cached_history(self, room_id) -> List[types.Message]:
         messages = []
         for room in self._my_rooms:
             with room.mutex:
@@ -391,7 +393,7 @@ class Client:
         json = {
             "group_tag_ids": tag_ids
         }
-        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # room_kick_user_by_tag:
     # Arguments:   
@@ -401,7 +403,7 @@ class Client:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
     def room_kick_users_by_tag(self, room_id:int, tag_id:int) -> Json:
         url = f'/chats/{room_id}/group_tags/{tag_id}'
-        return http.requests.send_delete_request(self.API_URL + url, self._headers)
+        return requests.send_delete_request(self.API_URL + url, self._headers)
 
     # room_add_user_by_id:
     # Arguments:   
@@ -416,7 +418,7 @@ class Client:
             "member_ids": user_ids,
             "silent": silent
         }
-        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # room_kick_user_by_id:
     # Arguments:   
@@ -426,19 +428,19 @@ class Client:
     #   object Json: При безошибочном выполнении запроса тело ответа отсутствует
     def room_kick_user_by_id(self, room_id:int, user_id:int) -> Json:
         url = f'/chats/{room_id}/members/{user_id}'
-        return http.requests.send_delete_request(self.API_URL + url, self._headers)
+        return requests.send_delete_request(self.API_URL + url, self._headers)
 
     # room_get_info:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     # Return value:
     #   object chatroom.ChatRoom
-    def room_get_info(self, room_id) -> ChatRoom:
+    def room_get_info(self, room_id) -> types.ChatRoom:
         url = f'/chats/{room_id}'
-        room_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+        room_json = requests.send_get_request(self.API_URL + url, self._headers)
         if not room_json["data"]:
             return {}
-        return ChatRoom(room_json["data"])
+        return types.ChatRoom(room_json["data"])
     
     # room_create
     # Arguments:
@@ -449,7 +451,7 @@ class Client:
     #   public		    Доступ: закрытый (по умолчанию, false) или открытый (true)
     # Return value:
     #   object chatroom.ChatRoom: Созданная беседа или канал
-    def room_create(self, name, member_ids:List[int]=None, group_tag_ids:List[int]=None, channel:bool=False, public:bool=False) -> ChatRoom:
+    def room_create(self, name, member_ids:List[int]=None, group_tag_ids:List[int]=None, channel:bool=False, public:bool=False) -> types.ChatRoom:
         if member_ids is None:
             member_ids = []
         if group_tag_ids is None:
@@ -464,11 +466,11 @@ class Client:
                 "public": public
             }
         }
-        response = http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        response = requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
         if not response["data"]:
             return {}
-        return ChatRoom(response["data"])
+        return types.ChatRoom(response["data"])
         
 
     # rooms_get_all:
@@ -476,24 +478,24 @@ class Client:
     #   None
     # Return value:
     #   list of chatroom.ChatRoom: Каналы, к которым подключен бот
-    def rooms_get_all(self) -> List[ChatRoom]:
+    def rooms_get_all(self) -> List[types.ChatRoom]:
         return self._my_rooms
 
     # room_get_users:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
     # Return value:
-    #   list of user.User: Пользователи, состоящие в беседе
-    def room_get_users(self, room_id) -> List[User]:
+    #   list of types.User: Пользователи, состоящие в беседе
+    def room_get_users(self, room_id) -> List[types.User]:
         users = []
         for room in self._my_rooms:
             if room.id == room_id:
                 for user_id in room.member_ids:
                     url = f'/users/{user_id}'
-                    user_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+                    user_json = requests.send_get_request(self.API_URL + url, self._headers)
                     if not user_json["data"]:
                         continue
-                    users.append(User(user_json["data"]))
+                    users.append(types.User(user_json["data"]))
         return users
 
     # message_edit:
@@ -503,7 +505,7 @@ class Client:
     #   files:      Прикрепляемые файлы
     # Return value:
     #   object Json: Созданное сообщение в формате Json
-    def message_edit(self, msg_id, content="", files:List[File]=None) -> Json:
+    def message_edit(self, msg_id, content="", files:List[types.File]=None) -> Json:
         if files is None:
             files = []
         url = f'/messages/{msg_id}'
@@ -520,33 +522,33 @@ class Client:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return http.requests.send_put_request(self.API_URL + url, self._headers, json=json)
+        return requests.send_put_request(self.API_URL + url, self._headers, json=json)
 
     # message_get_info:
     # Arguments:
     #   msg_id:     Идентификатор сообщения
     # Return value:
     #   object message.Message: Информация о сообщении
-    def message_get_info(self, msg_id) -> Message:
+    def message_get_info(self, msg_id) -> types.Message:
         url = f'/messages/{msg_id}'
-        msg_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+        msg_json = requests.send_get_request(self.API_URL + url, self._headers)
         if not msg_json["data"]:
             return {}
-        return Message(msg_json["data"])
+        return types.Message(msg_json["data"])
 
     # message_get_reactions:
     # Arguments:
     #   msg_id:     Идентификатор сообщения
     # Return value:
     #   list of reaction.Reaction: Массив списка реакций
-    def message_get_reactions(self, msg_id) -> List[Reaction]:
+    def message_get_reactions(self, msg_id) -> List[types.Reaction]:
         url = f'/messages/{msg_id}/reactions'
         reactions = []
-        reactions_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+        reactions_json = requests.send_get_request(self.API_URL + url, self._headers)
         if not reactions_json["data"]:
             return reactions
         for reaction_json in reactions_json["data"]:
-            reactions.append(Reaction(reaction_json))
+            reactions.append(types.Reaction(reaction_json))
         return reactions
 
     # message_delete_reaction:
@@ -560,7 +562,7 @@ class Client:
         json = {
             "code": emoji
         }
-        return http.requests.send_delete_request(self.API_URL + url, self._headers, json=json)
+        return requests.send_delete_request(self.API_URL + url, self._headers, json=json)
 
     # message_add_reaction:
     # Arguments:
@@ -573,7 +575,7 @@ class Client:
         json = {
             'code': emoji,
         }
-        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return requests.send_post_request(self.API_URL + url, self._headers, json=json)
     
     # message_create_thread:
     # Arguments:
@@ -582,7 +584,7 @@ class Client:
     #   object Json: Созданный тред в формате Json
     def message_create_thread(self, msg_id) -> Json:
         url = f'/messages/{msg_id}/thread'
-        return http.requests.send_post_request(self.API_URL + url, self._headers)["data"]
+        return requests.send_post_request(self.API_URL + url, self._headers)["data"]
 
     # message_reply_in_thread:
     # Arguments:
@@ -591,7 +593,7 @@ class Client:
     #   files:      Прикрепляемые файлы
     # Return value:
     #   object Json: Созданное сообщение в формате Json
-    def message_reply_in_thread(self, msg_id, content="", files:List[File]=None) -> Json:
+    def message_reply_in_thread(self, msg_id, content="", files:List[types.File]=None) -> Json:
         if files is None:
             files = []
         thread = self.message_create_thread(msg_id)
@@ -611,7 +613,7 @@ class Client:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # message_send_in_room:
     # Arguments:
@@ -620,7 +622,7 @@ class Client:
     #   files:      Прикрепляемые файлы
     # Return value:
     #   object Json: Созданное сообщение в формате Json
-    def message_send_in_room(self, room_id, content="", files:List[File]=None) -> Json:
+    def message_send_in_room(self, room_id, content="", files:List[types.File]=None) -> Json:
         if files is None:
             files = []
         url = '/messages'
@@ -639,16 +641,16 @@ class Client:
                 "file_type": file.file_type,
                 "size": file.size
             })
-        return http.requests.send_post_request(self.API_URL + url, self._headers, json=json)
+        return requests.send_post_request(self.API_URL + url, self._headers, json=json)
 
     # upload_file:
     # Arguments:
     #   filename: Путь к загружаемому файлу
     # Return value:
     #   object file.File: Загруженный файл
-    def upload_file(self, filename) -> File:
+    def upload_file(self, filename) -> types.File:
         url = "/uploads"
-        uploads_json = http.requests.send_post_request(self.API_URL + url, self._headers)
+        uploads_json = requests.send_post_request(self.API_URL + url, self._headers)
         # TODO: Check uploads_json
         direct_url = uploads_json.pop("direct_url")
         try:
@@ -656,10 +658,10 @@ class Client:
         except Exception as e:
             print(e)
             return {}
-        http.requests.send_post_request(direct_url, data=uploads_json, files=files)
+        requests.send_post_request(direct_url, data=uploads_json, files=files)
         
         filepath = uploads_json["key"].replace("${filename}", os.path.basename(filename))
-        new_file = File({
+        new_file = types.File({
             "key": filepath,
             "name": os.path.basename(filename),
             "file_type": "image" if Filetype.is_image(filename) else "file",
@@ -683,7 +685,7 @@ class Client:
         self._event_handlers["on_message"] = wrapper
         return wrapper
 
-    def __queue_get(self) -> Message:
+    def __queue_get(self) -> types.Message:
         return self._new_msg_queue.get()
 
     def __update_msg_box(self, room):
@@ -693,13 +695,13 @@ class Client:
         new_msgs = []
         while not stop:
             url = f'/messages?chat_id={room.id}&per=50&page={page}'
-            messages = http.requests.send_get_request(self.API_URL + url, self._headers)
+            messages = requests.send_get_request(self.API_URL + url, self._headers)
 
             if not messages["data"]:
                 break
             
             for json in messages["data"]:
-                msg = Message(json)
+                msg = types.Message(json)
                 if msg not in room.messages:
                     new_msgs.append(msg)
                     cache_count += 1
@@ -741,14 +743,14 @@ class Client:
 
     def __chatrooms_init(self):
         url = '/chats'
-        rooms_json = http.requests.send_get_request(self.API_URL + url, self._headers)
+        rooms_json = requests.send_get_request(self.API_URL + url, self._headers)
         if not rooms_json["data"]:
             return
         for room in rooms_json["data"]:
             if room["id"] in BLACKLISTED_ROOMS:
                 print(f'room {room["name"]} blacklisted')
                 continue
-            new_room = ChatRoom(room)
+            new_room = types.ChatRoom(room)
             new_room.print_info()
             self._my_rooms.append(new_room)
             self.__update_msg_box(new_room)
