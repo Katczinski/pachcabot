@@ -44,14 +44,3 @@ def run(callback:Callable, addr:str, port:int, server_class=HTTPServer, handler_
 
     print(f"Starting httpd server on {addr}:{port}")
     httpd.serve_forever()
-
-# class Bot:
-#     def callback(self, msg):
-#         print("From Bot callback:", msg)
-
-#     def run(self):
-#         run(callback=self.callback)
-
-# b = Bot()
-# b.run()
-# run(addr="127.0.0.1", port=5000)
