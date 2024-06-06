@@ -45,8 +45,8 @@ Implemented methods:\
 
 Example main.py:
 ```
-import pachcabot
-from message import Message
+import pachca
+from pachca.types import Message
 
 AUTH_TOKEN = YOUR_API_TOKEN_GOES_HERE       # string  # required!
 TARGET_CHAT = GROUP_ENTITY_ID_GOES_HERE     # integer # for the sake of example
@@ -56,7 +56,7 @@ def say_happy_birthday(msg):
   bot.message_reply_in_thread(msg.id, "Happy Birthday!!!🎂🎂🎂")
   bot.message_add_reaction(msg.id, '🎂')
 
-bot = pachcabot.Client(AUTH_TOKEN, cache_size=20)
+bot = pachca.Client(AUTH_TOKEN, cache_size=20)
 
 birthday_boy = bot.users_get_all(filters="Smith")[0]
 
@@ -74,5 +74,5 @@ def say_hello():
     for room in rooms:
         bot.message_send_in_room(room.id, "I'm alive!")
 
-bot.run()
+bot.run()    
 ```
