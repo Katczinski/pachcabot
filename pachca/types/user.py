@@ -38,7 +38,28 @@ class User:
     
         if json:
             self.from_json(json)
-        
+
+    def _is_valid_operand(self, other):
+        return (hasattr(other, "id") and
+                hasattr(other, "first_name") and
+                hasattr(other, "last_name") and
+                hasattr(other, "nickname") and
+                hasattr(other, "email") and
+                hasattr(other, "phone_number") and
+                hasattr(other, "department") and
+                hasattr(other, "role") and
+                hasattr(other, "suspended") and
+                hasattr(other, "invite_status") and
+                hasattr(other, "list_tags") and
+                hasattr(other, "custom_properties") and
+                hasattr(other, "user_status") and
+                hasattr(other, "bot") and
+                hasattr(other, "created_at"))
+
+    def __eq__(self, other):
+        if not self._is_valid_operand(other):
+            return NotImplemented
+        return (self.id == other.id)     
 
     def from_json(self, json):
         self.id = json["id"]
