@@ -46,6 +46,7 @@ Implemented methods:\
 Example main.py:
 ```
 import pachca
+from pachca import tasks
 from pachca.types import Message
 from pachca.types import Reaction
 
@@ -65,7 +66,7 @@ bot = pachca.Client(AUTH_TOKEN)
 birthday_boy = bot.users_get_all(filters="Smith")[0]
 
 @bot.on_message
-def message_handler(msg:Message):
+def message_added(msg:Message):
     if msg.user_id == BOT_ID:
         return
     if birthday_boy and msg.user_id == birthday_boy.id:
@@ -73,23 +74,23 @@ def message_handler(msg:Message):
         say_happy_birthday(msg)       
 
 @bot.on_message_delete
-def message_handler(msg:Message):
+def message_deleted(msg:Message):
     user = bot.user_get_info(msg.user_id)
     print(f'{user.first_name} {user.last_name} deleted message {msg.content}')
 
 @bot.on_message_edit
-def message_handler(msg:Message):
+def message_edited(msg:Message):
     user = bot.user_get_info(msg.user_id)
     print(f'{user.first_name} {user.last_name} edited message {msg.content}')
 
 @bot.on_reaction_remove
-def message_handler(react:Reaction):
+def reaction_removed(react:Reaction):
     msg = bot.message_get_info(react.message_id)
     user = bot.user_get_info(react.user_id)
     print(f'Reaction {react.code} removed by {user.first_name} {user.last_name} from the message {msg.content}')
 
 @bot.on_reaction_add
-def message_handler(react:Reaction):
+def reaction_added(react:Reaction):
     msg = bot.message_get_info(react.message_id)
     user = bot.user_get_info(react.user_id)
     print(f'Reaction {react.code} added by {user.first_name} {user.last_name} to the message {msg.content}')
@@ -99,6 +100,11 @@ def say_hello():
     rooms = bot.rooms_get_all()
     for room in rooms:
         bot.message_send_in_room(room.id, "I'm alive!")
+    periodic_task.start()
+
+@tasks.loop(minutes=1, seconds=30, start=False)
+async def periodic_task():
+    print("bot is alive")
 
 bot.run(HOST, PORT)    
 ```
