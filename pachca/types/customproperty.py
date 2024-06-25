@@ -20,7 +20,13 @@ class CustomProperty:
         self.id = json["id"]
         self.name = json["name"]
         self.data_type = json["data_type"]
-        self.value = json["value"] if "value" in json else None
+        if "value" in json:
+            if json["data_type"] == "number":
+                self.value = int(json["value"] or 0)
+            else:
+                self.value = json["value"]
+        else:
+            self.value = None
 
     def to_json(self):
         return Json.loads(Json.dumps(
