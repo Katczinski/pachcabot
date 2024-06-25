@@ -316,6 +316,19 @@ class Client:
         
         return tags
     
+    # tag_get_by_name:
+    # Arguments:
+    #   name:       Название тега
+    # Return value:
+    #   object tag.Tag: Найденный тег или None
+    def tag_get_by_name(self, name:str) -> types.Tag:
+        all_tags = self.tags_get_all()
+
+        for tag in all_tags:
+            if tag.name == name:
+                return tag
+        return None
+
     # room_edit:
     # Arguments:   
     #   room_id:    Идентификатор беседы или канала
