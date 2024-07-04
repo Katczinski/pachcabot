@@ -2,7 +2,9 @@
 Bot class for pachca messenger API\
 Developed with Python 3.7.9
 
-Implemented methods:\
+## The master branch has been abandoned indefinitely due to the current pachca API not providing a comprehensive way to implement an events-driven system without using webhooks.
+
+### Implemented methods:
 **Общие методы:**\
 ✅ Список дополнительных полей\
 ✅ Загрузка файлов\
